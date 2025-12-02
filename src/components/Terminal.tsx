@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,6 +20,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -32,6 +33,8 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   useEffect(() => {
     if (conversationId) {
       loadMessages();
+    } else {
+      setMessages([]);
     }
   }, [conversationId]);
 
@@ -198,62 +201,203 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     }
   };
 
-  return (
-    <div className="flex flex-col h-full bg-background">
-      <ScrollArea ref={scrollRef} className="flex-1 p-4">
-        <div className="space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center text-muted-foreground py-8">
-              <p className="text-lg">Welcome to AI Terminal</p>
-              <p className="text-sm mt-2">Type your request below to start</p>
+  const handleCopy = async (content: string, index: number) => {
+    await navigator.clipboard.writeText(content);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+    toast({
+      title: "Copied!",
+      description: "Code copied to clipboard",
+    });
+  };
+
+  const renderMessage = (msg: Message, idx: number) => {
+    const isUser = msg.role === "user";
+    const hasCodeBlock = msg.content.includes("```");
+    
+    // Parse code blocks
+    const parts = msg.content.split(/(```[\s\S]*?```)/g);
+    
+    return (
+      <div
+        key={idx}
+        className={`flex gap-3 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"}`}
+      >
+        <div className="flex-shrink-0 mt-1">
+          {isUser ? (
+            <div className="w-9 h-9 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg">
+              <span className="text-secondary-foreground font-bold text-sm">U</span>
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
+              <Code className="h-5 w-5 text-primary-foreground" />
             </div>
           )}
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-foreground"
-                }`}
+        </div>
+        <div
+          className={`flex-1 rounded-xl p-4 space-y-3 ${
+            isUser
+              ? "bg-gradient-primary text-primary-foreground shadow-lg mr-12"
+              : "bg-card/80 backdrop-blur-sm border border-border/50 ml-12"
+          }`}
+        >
+          <div className="space-y-2">
+            {parts.map((part, i) => {
+              if (part.startsWith("```")) {
+                const codeContent = part.replace(/```[\w]*\n?/g, "").replace(/```$/g, "");
+                return (
+                  <div key={i} className="relative group">
+                    <pre className="bg-muted/50 border border-border/30 rounded-lg p-4 overflow-x-auto">
+                      <code className="text-xs font-mono text-foreground leading-relaxed">
+                        {codeContent}
+                      </code>
+                    </pre>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7"
+                      onClick={() => handleCopy(codeContent, idx)}
+                    >
+                      {copiedIndex === idx ? (
+                        <Check className="h-3 w-3 text-primary" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                );
+              }
+              return (
+                <p
+                  key={i}
+                  className={`text-sm leading-relaxed whitespace-pre-wrap ${
+                    isUser ? "text-primary-foreground" : "text-foreground"
+                  }`}
+                >
+                  {part}
+                </p>
+              );
+            })}
+          </div>
+          {!isUser && msg.content && (
+            <div className="flex gap-2 pt-2 border-t border-border/30">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground hover:text-primary transition-colors"
               >
-                <pre className="whitespace-pre-wrap font-mono text-sm">{msg.content}</pre>
+                <Lightbulb className="h-3 w-3 mr-1" />
+                Helpful
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-background">
+      <ScrollArea ref={scrollRef} className="flex-1 p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {messages.length === 0 && (
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center space-y-6 max-w-xl">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-accent mx-auto flex items-center justify-center shadow-2xl">
+                  <Code className="h-10 w-10 text-accent-foreground" />
+                </div>
+                <div className="space-y-3">
+                  <h2 className="text-3xl font-bold bg-gradient-accent bg-clip-text text-transparent">
+                    Elite Code Assistant
+                  </h2>
+                  <p className="text-muted-foreground text-lg">
+                    Accurate, production-ready code with detailed explanations
+                  </p>
+                </div>
+                <div className="grid gap-3 pt-6">
+                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <span className="text-primary text-lg">💡</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          Collaborative Coding
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          I generate code in meaningful chunks and pause for your review
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <span className="text-primary text-lg">🧠</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          Learning & Memory
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          I remember your patterns and adapt to your coding style
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <span className="text-primary text-lg">🎯</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          Accuracy First
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Production-ready code with minimal bugs and best practices
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
+          )}
+          {messages.map((msg, idx) => renderMessage(msg, idx))}
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted text-foreground rounded-lg p-3">
-                <Loader2 className="h-5 w-5 animate-spin" />
+            <div className="flex gap-3">
+              <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
+                <Code className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl p-4 ml-12">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             </div>
           )}
         </div>
       </ScrollArea>
 
-      <div className="border-t border-border p-4">
-        <div className="flex gap-2">
+      <div className="border-t border-border bg-card/30 backdrop-blur-sm p-4">
+        <div className="max-w-4xl mx-auto flex gap-3">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your command..."
-            className="min-h-[60px] resize-none font-mono"
+            placeholder="Describe what you want to build... (Shift+Enter for new line)"
+            className="min-h-[70px] max-h-[200px] resize-none bg-background/80 border-border/50 focus:border-primary transition-colors text-sm"
             disabled={isLoading}
           />
           <Button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
             size="icon"
-            className="h-[60px] w-[60px]"
+            className="h-[70px] w-[70px] bg-gradient-primary hover:opacity-90 transition-opacity shadow-lg"
           >
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-6 w-6 animate-spin" />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send className="h-6 w-6" />
             )}
           </Button>
         </div>
