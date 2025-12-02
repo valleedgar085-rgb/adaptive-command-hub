@@ -72,9 +72,7 @@ const Auth = () => {
             <Terminal className="h-12 w-12 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">AI Terminal</h1>
-          <p className="text-muted-foreground">
-            Your intelligent coding companion
-          </p>
+          <p className="text-muted-foreground">Your intelligent coding companion</p>
         </div>
 
         <div className="bg-card border border-border rounded-lg p-6 space-y-6">

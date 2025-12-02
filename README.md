@@ -68,6 +68,7 @@ npx cap sync android
 ### Build APK in Android Studio
 
 1. Open the `android` folder in Android Studio:
+
    ```sh
    npx cap open android
    ```
@@ -116,11 +117,11 @@ cd android
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run lint` | Run ESLint |
+| Script            | Description              |
+| ----------------- | ------------------------ |
+| `npm run dev`     | Start development server |
+| `npm run build`   | Build for production     |
+| `npm run lint`    | Run ESLint               |
 | `npm run preview` | Preview production build |
 
 ## License

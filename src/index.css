@@ -36,7 +36,7 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 10% 98%;
     --sidebar-border: 240 15% 18%;
     --sidebar-ring: 263 85% 65%;
-    
+
     --gradient-primary: linear-gradient(135deg, hsl(263 85% 65%), hsl(263 85% 55%));
     --gradient-secondary: linear-gradient(135deg, hsl(24 95% 63%), hsl(24 95% 53%));
     --gradient-accent: linear-gradient(135deg, hsl(263 85% 65%), hsl(24 95% 63%));
@@ -57,7 +57,15 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
     line-height: 1.6;
   }
 
@@ -85,8 +93,12 @@ All colors MUST be HSL.
   }
 
   /* Code and monospace font styling */
-  code, pre, kbd, samp {
-    font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Liberation Mono', monospace;
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family:
+      "SF Mono", "Monaco", "Cascadia Code", "Roboto Mono", Consolas, "Liberation Mono", monospace;
   }
 
   /* Typography scale for headings */
@@ -107,13 +119,18 @@ All colors MUST be HSL.
   }
 
   /* Improve touch targets for mobile */
-  button, [role="button"], a {
+  button,
+  [role="button"],
+  a {
     min-height: 44px;
     min-width: 44px;
   }
 
   /* Exception for smaller icon buttons */
-  button.h-7, button.h-8, button.w-7, button.w-8 {
+  button.h-7,
+  button.h-8,
+  button.w-7,
+  button.w-8 {
     min-height: auto;
     min-width: auto;
   }

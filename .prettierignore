@@ -1,0 +1,7 @@
+node_modules
+dist
+android
+.git
+*.lock
+bun.lockb
+package-lock.json

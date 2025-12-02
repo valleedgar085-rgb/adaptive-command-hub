@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +57,9 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       toast({
         title: "Error",
@@ -99,10 +96,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   };
 
   const toggleIntegration = async (id: string, enabled: boolean) => {
-    const { error } = await supabase
-      .from("integrations")
-      .update({ enabled })
-      .eq("id", id);
+    const { error } = await supabase.from("integrations").update({ enabled }).eq("id", id);
 
     if (error) {
       toast({
@@ -117,10 +111,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   };
 
   const deleteIntegration = async (id: string) => {
-    const { error } = await supabase
-      .from("integrations")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("integrations").delete().eq("id", id);
 
     if (error) {
       toast({
@@ -149,7 +140,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-medium mb-4">Integrations</h3>
-            
+
             <div className="space-y-4 mb-4">
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -157,9 +148,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                   <Input
                     id="integration-name"
                     value={newIntegration.name}
-                    onChange={(e) =>
-                      setNewIntegration({ ...newIntegration, name: e.target.value })
-                    }
+                    onChange={(e) => setNewIntegration({ ...newIntegration, name: e.target.value })}
                     placeholder="e.g., GitHub, Notion, VSCode"
                   />
                 </div>
@@ -168,9 +157,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                   <Input
                     id="integration-type"
                     value={newIntegration.type}
-                    onChange={(e) =>
-                      setNewIntegration({ ...newIntegration, type: e.target.value })
-                    }
+                    onChange={(e) => setNewIntegration({ ...newIntegration, type: e.target.value })}
                     placeholder="api"
                   />
                 </div>
@@ -196,16 +183,12 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                     >
                       <div className="flex-1">
                         <p className="font-medium">{integration.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {integration.type}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{integration.type}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch
                           checked={integration.enabled}
-                          onCheckedChange={(checked) =>
-                            toggleIntegration(integration.id, checked)
-                          }
+                          onCheckedChange={(checked) => toggleIntegration(integration.id, checked)}
                         />
                         <Button
                           variant="ghost"
