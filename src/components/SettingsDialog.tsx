@@ -19,7 +19,7 @@ interface Integration {
   name: string;
   type: string;
   enabled: boolean;
-  config: any;
+  config: Record<string, unknown>;
 }
 
 interface SettingsDialogProps {

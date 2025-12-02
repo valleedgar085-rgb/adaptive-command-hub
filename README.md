@@ -1,73 +1,128 @@
-# Welcome to your Lovable project
+# Elite Code Assistant
 
-## Project info
+An AI-powered code assistant mobile app built with React, TypeScript, and Capacitor for Android.
 
-**URL**: https://lovable.dev/projects/470e3d7f-f26c-4a1e-a65b-839f0e80fb84
+## Features
 
-## How can I edit this code?
+- 🤖 AI-powered code assistant with streaming responses
+- 💬 Chat-based interface with conversation history
+- 🧠 Memory system that learns your coding patterns
+- 🎨 Modern, responsive UI with dark theme
+- 📱 Native Android app support via Capacitor
 
-There are several ways of editing your application.
+## Technologies Used
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite
+- **UI**: shadcn/ui, Tailwind CSS, Radix UI
+- **Mobile**: Capacitor (Android)
+- **Backend**: Supabase (Auth, Database, Edge Functions)
+- **State Management**: React Query (TanStack Query)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/470e3d7f-f26c-4a1e-a65b-839f0e80fb84) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm
+- [Android Studio](https://developer.android.com/studio) (for Android development)
+- Java JDK 17+ (for Android builds)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Create a `.env` file with your Supabase credentials:
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Building for Android
 
-## What technologies are used for this project?
+### Build the Web App
 
-This project is built with:
+```sh
+# Build the production web app
+npm run build
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Sync to Android
 
-## How can I deploy this project?
+```sh
+# Sync web assets to Android project
+npx cap sync android
+```
 
-Simply open [Lovable](https://lovable.dev/projects/470e3d7f-f26c-4a1e-a65b-839f0e80fb84) and click on Share -> Publish.
+### Build APK in Android Studio
 
-## Can I connect a custom domain to my Lovable project?
+1. Open the `android` folder in Android Studio:
+   ```sh
+   npx cap open android
+   ```
 
-Yes, you can!
+2. Wait for Gradle sync to complete
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+3. Build the APK:
+   - **Debug APK**: Build → Build Bundle(s) / APK(s) → Build APK(s)
+   - **Release APK**: Build → Generate Signed Bundle / APK
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+4. The APK will be located in:
+   - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
+   - Release: `android/app/build/outputs/apk/release/app-release.apk`
+
+### Build APK via Command Line
+
+```sh
+# Navigate to android folder
+cd android
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Build release APK (requires signing configuration)
+./gradlew assembleRelease
+```
+
+## Project Structure
+
+```
+├── android/              # Android native project (Capacitor)
+├── src/
+│   ├── components/       # React components
+│   │   ├── ui/           # shadcn/ui components
+│   │   ├── Terminal.tsx  # Main chat interface
+│   │   ├── Sidebar.tsx   # Navigation sidebar
+│   │   └── ...
+│   ├── hooks/            # Custom React hooks
+│   ├── integrations/     # External service integrations
+│   ├── pages/            # Page components
+│   └── lib/              # Utility functions
+├── capacitor.config.ts   # Capacitor configuration
+├── tailwind.config.ts    # Tailwind CSS configuration
+└── vite.config.ts        # Vite configuration
+```
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run lint` | Run ESLint |
+| `npm run preview` | Preview production build |
+
+## License
+
+This project is private and not licensed for public use.
