@@ -54,7 +54,9 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       }
 
       setConnectionError(null);
-      setMessages(data.map((msg) => ({ role: msg.role as "user" | "assistant", content: msg.content })));
+      setMessages(
+        data.map((msg) => ({ role: msg.role as "user" | "assistant", content: msg.content }))
+      );
     } catch (err) {
       console.error("Network error:", err);
       setConnectionError("Network error. Please check your connection.");
@@ -73,11 +75,11 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
   const generateSuggestions = useCallback(() => {
     const lastMessages = messages.slice(-3);
-    const hasCode = lastMessages.some(m => m.content.includes("```"));
-    const context = lastMessages.map(m => m.content.toLowerCase()).join(" ");
-    
+    const hasCode = lastMessages.some((m) => m.content.includes("```"));
+    const context = lastMessages.map((m) => m.content.toLowerCase()).join(" ");
+
     const newSuggestions: string[] = [];
-    
+
     if (hasCode) {
       newSuggestions.push("Explain this code");
       newSuggestions.push("Add error handling");
@@ -95,7 +97,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       newSuggestions.push("Explain in detail");
       newSuggestions.push("Show alternative approach");
     }
-    
+
     setSuggestions(newSuggestions.slice(0, 3));
   }, [messages]);
 
@@ -107,14 +109,16 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   }, [messages, generateSuggestions]);
 
   const createConversation = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
     const { data, error } = await supabase
       .from("conversations")
-      .insert({ 
+      .insert({
         user_id: user.id,
-        type: "chat" 
+        type: "chat",
       })
       .select()
       .single();
@@ -127,13 +131,11 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   };
 
   const saveMessage = async (convId: string, role: string, content: string) => {
-    const { error } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: convId,
-        role,
-        content,
-      });
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: convId,
+      role,
+      content,
+    });
 
     if (error) {
       console.error("Error saving message:", error);
@@ -158,7 +160,9 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
       await saveMessage(convId, "user", userMessage.content);
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired. Please log in again.");
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -280,10 +284,10 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
   const renderMessage = (msg: Message, idx: number) => {
     const isUser = msg.role === "user";
-    
+
     // Parse code blocks for syntax highlighting
     const parts = msg.content.split(/(```[\s\S]*?```)/g);
-    
+
     return (
       <div
         key={idx}
@@ -309,8 +313,8 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
             !isUser && idx === messages.length - 1 && isLoading
               ? "border-primary/70 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
               : !isUser
-              ? "border-border/60"
-              : ""
+                ? "border-border/60"
+                : ""
           }`}
         >
           <div className="space-y-2">
@@ -377,17 +381,12 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 text-destructive" />
           <span className="text-sm text-destructive">{connectionError}</span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={loadMessages}
-            className="ml-auto text-xs"
-          >
+          <Button variant="ghost" size="sm" onClick={loadMessages} className="ml-auto text-xs">
             Retry
           </Button>
         </div>
       )}
-      
+
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 sm:p-6">
         <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {messages.length === 0 && (

@@ -82,7 +82,7 @@ export const Sidebar = ({
     const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -93,9 +93,9 @@ export const Sidebar = ({
     <div className="h-full bg-card border-r border-border flex flex-col">
       {/* Header */}
       <div className="p-3 sm:p-4 border-b border-border">
-        <Button 
-          onClick={onNewChat} 
-          className="w-full bg-gradient-primary hover:opacity-90 transition-opacity" 
+        <Button
+          onClick={onNewChat}
+          className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
           size="sm"
         >
           <Plus className="h-4 w-4 mr-2" />

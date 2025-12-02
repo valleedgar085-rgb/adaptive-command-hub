@@ -40,9 +40,9 @@ const Index = () => {
       <header className="h-14 sm:h-16 border-b border-border flex items-center px-3 sm:px-4 bg-card/50 backdrop-blur-sm flex-shrink-0">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="mr-2 h-9 w-9 sm:h-10 sm:w-10"
               aria-label="Open menu"
             >
@@ -71,7 +71,7 @@ const Index = () => {
           Elite Code Assistant
         </h1>
       </header>
-      
+
       {/* Main chat area */}
       <main className="flex-1 overflow-hidden">
         <TerminalComponent
@@ -79,7 +79,7 @@ const Index = () => {
           onConversationCreate={setCurrentConversationId}
         />
       </main>
-      
+
       {/* Settings dialog */}
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
