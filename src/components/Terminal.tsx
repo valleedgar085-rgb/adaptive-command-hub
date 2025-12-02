@@ -21,6 +21,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -37,6 +38,12 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       setMessages([]);
     }
   }, [conversationId]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      generateSuggestions();
+    }
+  }, [messages]);
 
   const loadMessages = async () => {
     if (!conversationId) return;
@@ -194,11 +201,43 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     }
   };
 
+  const generateSuggestions = () => {
+    const lastMessages = messages.slice(-3);
+    const hasCode = lastMessages.some(m => m.content.includes("```"));
+    const context = lastMessages.map(m => m.content.toLowerCase()).join(" ");
+    
+    const newSuggestions = [];
+    
+    if (hasCode) {
+      newSuggestions.push("Explain this code");
+      newSuggestions.push("Add error handling");
+      newSuggestions.push("Optimize performance");
+    } else if (context.includes("database") || context.includes("table")) {
+      newSuggestions.push("Add validation");
+      newSuggestions.push("Create migration");
+      newSuggestions.push("Show schema");
+    } else if (context.includes("ui") || context.includes("component")) {
+      newSuggestions.push("Make it responsive");
+      newSuggestions.push("Add animations");
+      newSuggestions.push("Improve accessibility");
+    } else {
+      newSuggestions.push("Continue with implementation");
+      newSuggestions.push("Explain in detail");
+      newSuggestions.push("Show alternative approach");
+    }
+    
+    setSuggestions(newSuggestions.slice(0, 3));
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
   };
 
   const handleCopy = async (content: string, index: number) => {
@@ -238,7 +277,13 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
           className={`flex-1 rounded-xl p-4 space-y-3 ${
             isUser
               ? "bg-gradient-primary text-primary-foreground shadow-lg mr-12"
-              : "bg-card/80 backdrop-blur-sm border border-border/50 ml-12"
+              : "bg-card/80 backdrop-blur-sm border-2 ml-12 transition-all duration-300"
+          } ${
+            !isUser && idx === messages.length - 1 && isLoading
+              ? "border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse"
+              : !isUser
+              ? "border-black/50"
+              : ""
           }`}
         >
           <div className="space-y-2">
@@ -366,12 +411,12 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
           )}
           {messages.map((msg, idx) => renderMessage(msg, idx))}
           {isLoading && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 animate-fade-in">
               <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
                 <Code className="h-5 w-5 text-primary-foreground" />
               </div>
-              <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl p-4 ml-12">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="bg-card/80 backdrop-blur-sm border-2 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse rounded-xl p-4 ml-12">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
               </div>
             </div>
           )}
@@ -379,27 +424,45 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       </ScrollArea>
 
       <div className="border-t border-border bg-card/30 backdrop-blur-sm p-4">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe what you want to build... (Shift+Enter for new line)"
-            className="min-h-[70px] max-h-[200px] resize-none bg-background/80 border-border/50 focus:border-primary transition-colors text-sm"
-            disabled={isLoading}
-          />
-          <Button
-            onClick={handleSend}
-            disabled={isLoading || !input.trim()}
-            size="icon"
-            className="h-[70px] w-[70px] bg-gradient-primary hover:opacity-90 transition-opacity shadow-lg"
-          >
-            {isLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : (
-              <Send className="h-6 w-6" />
-            )}
-          </Button>
+        <div className="max-w-4xl mx-auto space-y-3">
+          {suggestions.length > 0 && messages.length > 0 && (
+            <div className="flex gap-2 flex-wrap animate-fade-in">
+              {suggestions.map((suggestion, idx) => (
+                <Button
+                  key={idx}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="text-xs bg-card/60 border-primary/30 hover:border-primary hover:bg-primary/10 transition-all"
+                  disabled={isLoading}
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe what you want to build... (Shift+Enter for new line)"
+              className="min-h-[70px] max-h-[200px] resize-none bg-background/80 border-border/50 focus:border-primary transition-colors text-sm"
+              disabled={isLoading}
+            />
+            <Button
+              onClick={handleSend}
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className="h-[70px] w-[70px] bg-gradient-primary hover:opacity-90 transition-opacity shadow-lg"
+            >
+              {isLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <Send className="h-6 w-6" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
