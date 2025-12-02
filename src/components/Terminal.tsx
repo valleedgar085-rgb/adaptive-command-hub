@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Message {
   role: "user" | "assistant";
@@ -246,10 +247,9 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       }
     } catch (error) {
       console.error("Error:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
       toast({
         title: "Error",
-        description: errorMessage,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
