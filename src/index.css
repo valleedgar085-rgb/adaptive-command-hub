@@ -8,34 +8,38 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 210 20% 8%;
-    --foreground: 180 100% 90%;
-    --card: 210 20% 10%;
-    --card-foreground: 180 100% 90%;
-    --popover: 210 20% 10%;
-    --popover-foreground: 180 100% 90%;
-    --primary: 180 100% 50%;
-    --primary-foreground: 210 20% 8%;
-    --secondary: 150 80% 45%;
-    --secondary-foreground: 210 20% 8%;
-    --muted: 210 15% 15%;
-    --muted-foreground: 180 50% 60%;
-    --accent: 280 100% 60%;
-    --accent-foreground: 180 100% 90%;
+    --background: 240 25% 6%;
+    --foreground: 240 10% 98%;
+    --card: 240 20% 10%;
+    --card-foreground: 240 10% 98%;
+    --popover: 240 20% 10%;
+    --popover-foreground: 240 10% 98%;
+    --primary: 263 85% 65%;
+    --primary-foreground: 240 10% 98%;
+    --secondary: 24 95% 63%;
+    --secondary-foreground: 240 25% 6%;
+    --muted: 240 15% 15%;
+    --muted-foreground: 240 10% 65%;
+    --accent: 263 85% 70%;
+    --accent-foreground: 240 10% 98%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 180 100% 90%;
-    --border: 210 15% 20%;
-    --input: 210 15% 20%;
-    --ring: 180 100% 50%;
-    --radius: 0.3rem;
-    --sidebar-background: 210 20% 10%;
-    --sidebar-foreground: 180 100% 90%;
-    --sidebar-primary: 180 100% 50%;
-    --sidebar-primary-foreground: 210 20% 8%;
-    --sidebar-accent: 210 15% 15%;
-    --sidebar-accent-foreground: 180 100% 90%;
-    --sidebar-border: 210 15% 20%;
-    --sidebar-ring: 180 100% 50%;
+    --destructive-foreground: 240 10% 98%;
+    --border: 240 15% 18%;
+    --input: 240 15% 18%;
+    --ring: 263 85% 65%;
+    --radius: 0.5rem;
+    --sidebar-background: 240 20% 10%;
+    --sidebar-foreground: 240 10% 98%;
+    --sidebar-primary: 263 85% 65%;
+    --sidebar-primary-foreground: 240 10% 98%;
+    --sidebar-accent: 240 15% 15%;
+    --sidebar-accent-foreground: 240 10% 98%;
+    --sidebar-border: 240 15% 18%;
+    --sidebar-ring: 263 85% 65%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(263 85% 65%), hsl(263 85% 55%));
+    --gradient-secondary: linear-gradient(135deg, hsl(24 95% 63%), hsl(24 95% 53%));
+    --gradient-accent: linear-gradient(135deg, hsl(263 85% 65%), hsl(24 95% 63%));
   }
 }
 
