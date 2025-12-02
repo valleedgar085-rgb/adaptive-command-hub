@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Message {
   role: "user" | "assistant";
@@ -22,45 +23,88 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+  // Smooth scroll to bottom when new messages arrive
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  const loadMessages = useCallback(async () => {
+    if (!conversationId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error loading messages:", error);
+        setConnectionError("Failed to load messages. Please try again.");
+        return;
+      }
+
+      setConnectionError(null);
+      setMessages(data.map((msg) => ({ role: msg.role as "user" | "assistant", content: msg.content })));
+    } catch (err) {
+      console.error("Network error:", err);
+      setConnectionError("Network error. Please check your connection.");
+    }
+  }, [conversationId]);
+
+  // Load messages when conversation changes
   useEffect(() => {
     if (conversationId) {
       loadMessages();
     } else {
       setMessages([]);
+      setConnectionError(null);
     }
-  }, [conversationId]);
+  }, [conversationId, loadMessages]);
 
+  const generateSuggestions = useCallback(() => {
+    const lastMessages = messages.slice(-3);
+    const hasCode = lastMessages.some(m => m.content.includes("```"));
+    const context = lastMessages.map(m => m.content.toLowerCase()).join(" ");
+    
+    const newSuggestions: string[] = [];
+    
+    if (hasCode) {
+      newSuggestions.push("Explain this code");
+      newSuggestions.push("Add error handling");
+      newSuggestions.push("Optimize performance");
+    } else if (context.includes("database") || context.includes("table")) {
+      newSuggestions.push("Add validation");
+      newSuggestions.push("Create migration");
+      newSuggestions.push("Show schema");
+    } else if (context.includes("ui") || context.includes("component")) {
+      newSuggestions.push("Make it responsive");
+      newSuggestions.push("Add animations");
+      newSuggestions.push("Improve accessibility");
+    } else {
+      newSuggestions.push("Continue with implementation");
+      newSuggestions.push("Explain in detail");
+      newSuggestions.push("Show alternative approach");
+    }
+    
+    setSuggestions(newSuggestions.slice(0, 3));
+  }, [messages]);
+
+  // Generate suggestions when messages change
   useEffect(() => {
     if (messages.length > 0) {
       generateSuggestions();
     }
-  }, [messages]);
-
-  const loadMessages = async () => {
-    if (!conversationId) return;
-
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Error loading messages:", error);
-      return;
-    }
-
-    setMessages(data.map((msg) => ({ role: msg.role as "user" | "assistant", content: msg.content })));
-  };
+  }, [messages, generateSuggestions]);
 
   const createConversation = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -99,6 +143,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    setConnectionError(null);
     const userMessage: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -114,9 +159,14 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       await saveMessage(convId, "user", userMessage.content);
 
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      if (!session) throw new Error("Session expired. Please log in again.");
 
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error("API configuration error. Please contact support.");
+      }
+
+      const CHAT_URL = `${supabaseUrl}/functions/v1/chat`;
 
       const response = await fetch(CHAT_URL, {
         method: "POST",
@@ -131,8 +181,14 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to get response");
+        let errorMessage = "Failed to get response from AI assistant";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If we can't parse the error response, use the default message
+        }
+        throw new Error(errorMessage);
       }
 
       if (!response.body) throw new Error("No response body");
@@ -189,44 +245,16 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       if (assistantContent) {
         await saveMessage(convId, "assistant", assistantContent);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const generateSuggestions = () => {
-    const lastMessages = messages.slice(-3);
-    const hasCode = lastMessages.some(m => m.content.includes("```"));
-    const context = lastMessages.map(m => m.content.toLowerCase()).join(" ");
-    
-    const newSuggestions = [];
-    
-    if (hasCode) {
-      newSuggestions.push("Explain this code");
-      newSuggestions.push("Add error handling");
-      newSuggestions.push("Optimize performance");
-    } else if (context.includes("database") || context.includes("table")) {
-      newSuggestions.push("Add validation");
-      newSuggestions.push("Create migration");
-      newSuggestions.push("Show schema");
-    } else if (context.includes("ui") || context.includes("component")) {
-      newSuggestions.push("Make it responsive");
-      newSuggestions.push("Add animations");
-      newSuggestions.push("Improve accessibility");
-    } else {
-      newSuggestions.push("Continue with implementation");
-      newSuggestions.push("Explain in detail");
-      newSuggestions.push("Show alternative approach");
-    }
-    
-    setSuggestions(newSuggestions.slice(0, 3));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -252,37 +280,36 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
   const renderMessage = (msg: Message, idx: number) => {
     const isUser = msg.role === "user";
-    const hasCodeBlock = msg.content.includes("```");
     
-    // Parse code blocks
+    // Parse code blocks for syntax highlighting
     const parts = msg.content.split(/(```[\s\S]*?```)/g);
     
     return (
       <div
         key={idx}
-        className={`flex gap-3 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"}`}
+        className={`flex gap-3 sm:gap-4 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"}`}
       >
         <div className="flex-shrink-0 mt-1">
           {isUser ? (
-            <div className="w-9 h-9 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg">
-              <span className="text-secondary-foreground font-bold text-sm">U</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg">
+              <span className="text-secondary-foreground font-semibold text-xs sm:text-sm">U</span>
             </div>
           ) : (
-            <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
-              <Code className="h-5 w-5 text-primary-foreground" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
+              <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
             </div>
           )}
         </div>
         <div
-          className={`flex-1 rounded-xl p-4 space-y-3 ${
+          className={`flex-1 max-w-[calc(100%-3rem)] sm:max-w-none rounded-xl p-3 sm:p-4 space-y-3 ${
             isUser
-              ? "bg-gradient-primary text-primary-foreground shadow-lg mr-12"
-              : "bg-card/80 backdrop-blur-sm border-2 ml-12 transition-all duration-300"
+              ? "bg-gradient-primary text-primary-foreground shadow-lg ml-4 sm:mr-12 sm:ml-0"
+              : "bg-card/80 backdrop-blur-sm border-2 mr-4 sm:ml-12 sm:mr-0 transition-all duration-300"
           } ${
             !isUser && idx === messages.length - 1 && isLoading
-              ? "border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse"
+              ? "border-primary/70 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
               : !isUser
-              ? "border-black/50"
+              ? "border-border/60"
               : ""
           }`}
         >
@@ -292,15 +319,15 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                 const codeContent = part.replace(/```[\w]*\n?/g, "").replace(/```$/g, "");
                 return (
                   <div key={i} className="relative group">
-                    <pre className="bg-muted/50 border border-border/30 rounded-lg p-4 overflow-x-auto">
-                      <code className="text-xs font-mono text-foreground leading-relaxed">
+                    <pre className="bg-muted/50 border border-border/30 rounded-lg p-3 sm:p-4 overflow-x-auto">
+                      <code className="text-xs sm:text-sm font-mono text-foreground leading-relaxed">
                         {codeContent}
                       </code>
                     </pre>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7"
+                      className="absolute top-2 right-2 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity h-7 w-7 bg-background/80"
                       onClick={() => handleCopy(codeContent, idx)}
                     >
                       {copiedIndex === idx ? (
@@ -312,10 +339,12 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                   </div>
                 );
               }
+              // Skip empty parts
+              if (!part.trim()) return null;
               return (
                 <p
                   key={i}
-                  className={`text-sm leading-relaxed whitespace-pre-wrap ${
+                  className={`text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${
                     isUser ? "text-primary-foreground" : "text-foreground"
                   }`}
                 >
@@ -343,63 +372,79 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <ScrollArea ref={scrollRef} className="flex-1 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
+      {/* Connection error banner */}
+      {connectionError && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <span className="text-sm text-destructive">{connectionError}</span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={loadMessages}
+            className="ml-auto text-xs"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+      
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {messages.length === 0 && (
-            <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="text-center space-y-6 max-w-xl">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-accent mx-auto flex items-center justify-center shadow-2xl">
-                  <Code className="h-10 w-10 text-accent-foreground" />
+            <div className="flex items-center justify-center min-h-[50vh] sm:min-h-[60vh] px-2">
+              <div className="text-center space-y-4 sm:space-y-6 max-w-xl w-full">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-accent mx-auto flex items-center justify-center shadow-2xl">
+                  <Code className="h-8 w-8 sm:h-10 sm:w-10 text-accent-foreground" />
                 </div>
-                <div className="space-y-3">
-                  <h2 className="text-3xl font-bold bg-gradient-accent bg-clip-text text-transparent">
+                <div className="space-y-2 sm:space-y-3">
+                  <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-accent bg-clip-text text-transparent">
                     Elite Code Assistant
                   </h2>
-                  <p className="text-muted-foreground text-lg">
+                  <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
                     Accurate, production-ready code with detailed explanations
                   </p>
                 </div>
-                <div className="grid gap-3 pt-6">
-                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
+                <div className="grid gap-3 pt-4 sm:pt-6">
+                  <div className="p-3 sm:p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                         <span className="text-primary text-lg">💡</span>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground mb-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground mb-0.5">
                           Collaborative Coding
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                           I generate code in meaningful chunks and pause for your review
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
+                  <div className="p-3 sm:p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                         <span className="text-primary text-lg">🧠</span>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground mb-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground mb-0.5">
                           Learning & Memory
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                           I remember your patterns and adapt to your coding style
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
+                  <div className="p-3 sm:p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                         <span className="text-primary text-lg">🎯</span>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground mb-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground mb-0.5">
                           Accuracy First
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                           Production-ready code with minimal bugs and best practices
                         </p>
                       </div>
@@ -410,22 +455,30 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
             </div>
           )}
           {messages.map((msg, idx) => renderMessage(msg, idx))}
-          {isLoading && (
-            <div className="flex gap-3 animate-fade-in">
-              <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
-                <Code className="h-5 w-5 text-primary-foreground" />
+          {/* Loading indicator when waiting for response */}
+          {isLoading && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
+            <div className="flex gap-3 sm:gap-4 animate-fade-in">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
+                <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
               </div>
-              <div className="bg-card/80 backdrop-blur-sm border-2 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse rounded-xl p-4 ml-12">
-                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+              <div className="bg-card/80 backdrop-blur-sm border-2 border-primary/50 shadow-lg rounded-xl p-3 sm:p-4 mr-4 sm:ml-12 sm:mr-0">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">Thinking...</span>
+                </div>
               </div>
             </div>
           )}
+          {/* Scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
-      <div className="border-t border-border bg-card/30 backdrop-blur-sm p-4">
-        <div className="max-w-4xl mx-auto space-y-3">
-          {suggestions.length > 0 && messages.length > 0 && (
+      {/* Input area */}
+      <div className="border-t border-border bg-card/30 backdrop-blur-sm p-3 sm:p-4">
+        <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
+          {/* Suggestion buttons */}
+          {suggestions.length > 0 && messages.length > 0 && !isLoading && (
             <div className="flex gap-2 flex-wrap animate-fade-in">
               {suggestions.map((suggestion, idx) => (
                 <Button
@@ -441,28 +494,34 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
               ))}
             </div>
           )}
-          <div className="flex gap-3">
+          {/* Message input */}
+          <div className="flex gap-2 sm:gap-3">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Describe what you want to build... (Shift+Enter for new line)"
-              className="min-h-[70px] max-h-[200px] resize-none bg-background/80 border-border/50 focus:border-primary transition-colors text-sm"
+              placeholder="Describe what you want to build..."
+              className="min-h-[56px] sm:min-h-[70px] max-h-[200px] resize-none bg-background/80 border-border/50 focus:border-primary transition-colors text-sm sm:text-base leading-relaxed"
               disabled={isLoading}
             />
             <Button
               onClick={handleSend}
               disabled={isLoading || !input.trim()}
               size="icon"
-              className="h-[70px] w-[70px] bg-gradient-primary hover:opacity-90 transition-opacity shadow-lg"
+              className="h-[56px] w-[56px] sm:h-[70px] sm:w-[70px] bg-gradient-primary hover:opacity-90 transition-opacity shadow-lg flex-shrink-0"
+              aria-label="Send message"
             >
               {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
               ) : (
-                <Send className="h-6 w-6" />
+                <Send className="h-5 w-5 sm:h-6 sm:w-6" />
               )}
             </Button>
           </div>
+          {/* Keyboard hint - hidden on mobile */}
+          <p className="hidden sm:block text-xs text-muted-foreground text-center">
+            Press Shift+Enter for new line
+          </p>
         </div>
       </div>
     </div>

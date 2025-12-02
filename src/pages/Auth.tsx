@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Terminal } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,10 +53,10 @@ const Auth = () => {
         });
         setIsLogin(true);
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
