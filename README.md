@@ -117,12 +117,17 @@ cd android
 
 ## Scripts
 
-| Script            | Description              |
-| ----------------- | ------------------------ |
-| `npm run dev`     | Start development server |
-| `npm run build`   | Build for production     |
-| `npm run lint`    | Run ESLint               |
-| `npm run preview` | Preview production build |
+| Script                  | Description                    |
+| ----------------------- | ------------------------------ |
+| `npm run dev`           | Start development server       |
+| `npm run build`         | Build for production           |
+| `npm run lint`          | Run ESLint                     |
+| `npm run preview`       | Preview production build       |
+| `npm run format`        | Format code with Prettier      |
+| `npm run format:check`  | Check code formatting          |
+| `npm run test`          | Run unit tests with Vitest     |
+| `npm run test:watch`    | Run tests in watch mode        |
+| `npm run test:coverage` | Run tests with coverage report |
 
 ## License
 
