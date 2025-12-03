@@ -43,7 +43,13 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      setIntegrations(data);
+      setIntegrations(data.map(item => ({
+        ...item,
+        enabled: item.enabled ?? false,
+        config: (typeof item.config === 'object' && item.config !== null && !Array.isArray(item.config)) 
+          ? item.config as Record<string, unknown> 
+          : {}
+      })));
     }
   };
 
