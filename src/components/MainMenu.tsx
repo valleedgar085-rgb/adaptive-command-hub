@@ -90,7 +90,7 @@ export const MainMenu = ({ onNewChat, onOpenSettings, onSignOut }: MainMenuProps
             <MenubarShortcut>⌘,</MenubarShortcut>
           </MenubarItem>
           <MenubarSeparator />
-          <MenubarItem onClick={() => navigate("/integrations")}>
+          <MenubarItem onClick={onOpenSettings}>
             <FileText className="mr-2 h-4 w-4" />
             Integrations
           </MenubarItem>

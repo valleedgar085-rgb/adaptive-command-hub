@@ -28,9 +28,21 @@ const Memories = () => {
   const loadMemories = useCallback(async () => {
     setIsLoading(true);
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from("memories")
         .select("*")
+        .eq("user_id", currentUser.id)
         .order("confidence", { ascending: false });
 
       if (!error && data) {
@@ -57,7 +69,22 @@ const Memories = () => {
   }, [user, loading, navigate, loadMemories]);
 
   const deleteMemory = async (id: string) => {
-    const { error } = await supabase.from("memories").delete().eq("id", id);
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Authentication required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("memories")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", currentUser.id);
 
     if (error) {
       toast({

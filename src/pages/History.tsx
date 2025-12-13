@@ -25,9 +25,21 @@ const History = () => {
   const loadConversations = useCallback(async () => {
     setIsLoading(true);
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) {
+        toast({
+          title: "Error",
+          description: "Authentication required",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
+        .eq("user_id", currentUser.id)
         .order("updated_at", { ascending: false });
 
       if (!error && data) {
@@ -54,7 +66,22 @@ const History = () => {
   }, [user, loading, navigate, loadConversations]);
 
   const deleteConversation = async (id: string) => {
-    const { error } = await supabase.from("conversations").delete().eq("id", id);
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Authentication required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("conversations")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", currentUser.id);
 
     if (error) {
       toast({
