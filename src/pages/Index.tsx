@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Terminal as TerminalComponent } from "@/components/Terminal";
 import { Sidebar } from "@/components/Sidebar";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { MainMenu } from "@/components/MainMenu";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ const Index = () => {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,6 +35,11 @@ const Index = () => {
     return null;
   }
 
+  const handleNewChat = () => {
+    setCurrentConversationId(null);
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
@@ -51,10 +57,7 @@ const Index = () => {
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-72 sm:w-80">
             <Sidebar
-              onNewChat={() => {
-                setCurrentConversationId(null);
-                setSidebarOpen(false);
-              }}
+              onNewChat={handleNewChat}
               onSelectConversation={(id) => {
                 setCurrentConversationId(id);
                 setSidebarOpen(false);
@@ -67,9 +70,16 @@ const Index = () => {
             />
           </SheetContent>
         </Sheet>
-        <h1 className="text-base sm:text-lg font-semibold bg-gradient-accent bg-clip-text text-transparent tracking-tight">
+        <h1 className="text-base sm:text-lg font-semibold bg-gradient-accent bg-clip-text text-transparent tracking-tight mr-4">
           Elite Code Assistant
         </h1>
+        <div className="hidden md:flex flex-1">
+          <MainMenu 
+            onNewChat={handleNewChat}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onSignOut={signOut}
+          />
+        </div>
       </header>
 
       {/* Main chat area */}
