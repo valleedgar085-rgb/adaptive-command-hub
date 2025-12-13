@@ -23,8 +23,7 @@ The main menu is implemented using the Menubar component from shadcn/ui and incl
 - **Memory Dashboard**: View AI memories
 
 ### Settings Menu
-- **Preferences** (⌘,): Open settings dialog for integrations
-- **Integrations**: Manage API integrations
+- **Preferences** (⌘,): Open settings dialog for integrations and configuration
 
 ### Help Menu
 - **About**: Learn more about the application
