@@ -9,6 +9,26 @@ An AI-powered code assistant mobile app built with React, TypeScript, and Capaci
 - 🧠 Memory system that learns your coding patterns
 - 🎨 Modern, responsive UI with dark theme
 - 📱 Native Android app support via Capacitor
+- 🎯 Main menu with comprehensive navigation
+- 📜 Conversation history management
+- 🗂️ Memory dashboard with confidence indicators
+
+## Navigation
+
+The app includes a main menu with the following sections:
+
+- **File Menu**: New Chat, Home, History, Memories, Sign Out
+- **View Menu**: Chat, Conversation History, Memory Dashboard
+- **Settings Menu**: Preferences, Integrations
+- **Help Menu**: About, Documentation
+
+### New Pages
+
+- **History (`/history`)**: View and manage all past conversations
+- **Memories (`/memories`)**: View AI's learned patterns with confidence levels
+- **About (`/about`)**: Application information and features
+
+For detailed documentation, see [docs/MAIN_MENU_NAVIGATION.md](docs/MAIN_MENU_NAVIGATION.md).
 
 ## Technologies Used
 
