@@ -37,9 +37,15 @@ All colors MUST be HSL.
     --sidebar-border: 240 15% 18%;
     --sidebar-ring: 263 85% 65%;
 
+    /* AI Chat Blue Theme */
+    --ai-blue: 217 91% 60%;
+    --ai-blue-glow: 217 91% 70%;
+    --ai-blue-solid: 217 91% 50%;
+
     --gradient-primary: linear-gradient(135deg, hsl(263 85% 65%), hsl(263 85% 55%));
     --gradient-secondary: linear-gradient(135deg, hsl(24 95% 63%), hsl(24 95% 53%));
     --gradient-accent: linear-gradient(135deg, hsl(263 85% 65%), hsl(24 95% 63%));
+    --gradient-ai: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%));
   }
 }
 
@@ -247,4 +253,29 @@ pre[class*="language-"] {
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out forwards;
+}
+
+/* AI Glow Animation */
+@keyframes ai-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.4),
+                0 0 40px hsl(217 91% 60% / 0.2),
+                0 0 60px hsl(217 91% 60% / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px hsl(217 91% 60% / 0.6),
+                0 0 50px hsl(217 91% 60% / 0.3),
+                0 0 70px hsl(217 91% 60% / 0.15);
+  }
+}
+
+.ai-glow-active {
+  animation: ai-glow-pulse 2s ease-in-out infinite;
+  border-color: hsl(217 91% 60%) !important;
+}
+
+.ai-glow-solid {
+  box-shadow: 0 0 15px hsl(217 91% 50% / 0.3),
+              0 4px 20px hsl(217 91% 50% / 0.15);
+  border-color: hsl(217 91% 50%) !important;
 }
