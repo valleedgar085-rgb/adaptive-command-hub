@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,8 +11,11 @@ import { CodeSandbox } from "@/components/CodeSandbox";
 import { AIMessage } from "@/components/AIMessage";
 import { FileSystemAccess, useFileSystem } from "@/components/FileSystemAccess";
 import { PermissionDialog } from "@/components/PermissionDialog";
+import { APKBuildDialog } from "@/components/APKBuildDialog";
 import { Link } from "react-router-dom";
 import { useExportChat } from "@/hooks/useExportChat";
+import { useAPKBuilder } from "@/hooks/useAPKBuilder";
+import { useAutoNaming } from "@/hooks/useAutoNaming";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +42,14 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [sandboxCode, setSandboxCode] = useState<string | null>(null);
   const [showFileSystem, setShowFileSystem] = useState(false);
+  const [showAPKDialog, setShowAPKDialog] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { exportAsMarkdown, exportAsText, exportAsPDF } = useExportChat();
   const fileSystem = useFileSystem();
+  const { buildState, processMessage: processAPKMessage, getAPKInstructions, resetBuildState } = useAPKBuilder();
+  const { updateConversationTitle } = useAutoNaming();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -159,17 +165,31 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Check for APK build request
+    const isAPKRequest = processAPKMessage(input);
+    if (isAPKRequest) {
+      setShowAPKDialog(true);
+    }
+
     setConnectionError(null);
     const userMessage: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
+    const messageContent = input;
     setInput("");
     setIsLoading(true);
 
     try {
       let convId = conversationId;
+      const isNewConversation = !convId;
+      
       if (!convId) {
         convId = await createConversation();
         onConversationCreate(convId);
+      }
+
+      // Auto-name conversation on first message
+      if (isNewConversation && convId) {
+        await updateConversationTitle(convId, messageContent);
       }
 
       await saveMessage(convId, "user", userMessage.content);
@@ -349,6 +369,13 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* APK Build Dialog */}
+      <APKBuildDialog
+        open={showAPKDialog}
+        onOpenChange={setShowAPKDialog}
+        instructions={getAPKInstructions()}
+      />
+
       {/* Permission Dialog for File System */}
       <PermissionDialog
         open={!!fileSystem.pendingPermission}
@@ -563,6 +590,15 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
               title="Open file from computer"
             >
               <FolderOpen className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowAPKDialog(true)}
+              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-green-500/10 hover:border-green-500/50"
+              title="Build Android APK"
+            >
+              <Smartphone className="h-5 w-5" />
             </Button>
             <div className="flex-1 relative">
               <Textarea
