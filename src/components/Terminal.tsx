@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,6 +12,7 @@ import { AIMessage } from "@/components/AIMessage";
 import { FileSystemAccess, useFileSystem } from "@/components/FileSystemAccess";
 import { PermissionDialog } from "@/components/PermissionDialog";
 import { APKBuildDialog } from "@/components/APKBuildDialog";
+import { ScriptBuilder } from "@/components/ScriptBuilder";
 import { Link } from "react-router-dom";
 import { useExportChat } from "@/hooks/useExportChat";
 import { useAPKBuilder } from "@/hooks/useAPKBuilder";
@@ -43,6 +44,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [sandboxCode, setSandboxCode] = useState<string | null>(null);
   const [showFileSystem, setShowFileSystem] = useState(false);
   const [showAPKDialog, setShowAPKDialog] = useState(false);
+  const [showScriptBuilder, setShowScriptBuilder] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -376,6 +378,17 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         instructions={getAPKInstructions()}
       />
 
+      {/* Script Builder Dialog */}
+      <ScriptBuilder
+        open={showScriptBuilder}
+        onOpenChange={setShowScriptBuilder}
+        onScriptSelect={(commands) => {
+          // When a script is selected, add it to the chat as context
+          const scriptText = commands.map((c, i) => `${i + 1}. ${c.description}: \`${c.command}\``).join('\n');
+          setInput(prev => prev + (prev ? '\n\n' : '') + `Execute script:\n${scriptText}`);
+        }}
+      />
+
       {/* Permission Dialog for File System */}
       <PermissionDialog
         open={!!fileSystem.pendingPermission}
@@ -599,6 +612,15 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
               title="Build Android APK"
             >
               <Smartphone className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowScriptBuilder(true)}
+              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-amber-500/10 hover:border-amber-500/50"
+              title="Script Builder"
+            >
+              <FileCode className="h-5 w-5" />
             </Button>
             <div className="flex-1 relative">
               <Textarea
