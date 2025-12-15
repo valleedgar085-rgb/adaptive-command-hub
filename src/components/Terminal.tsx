@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone, FileCode } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone, FileCode, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +13,8 @@ import { FileSystemAccess, useFileSystem } from "@/components/FileSystemAccess";
 import { PermissionDialog } from "@/components/PermissionDialog";
 import { APKBuildDialog } from "@/components/APKBuildDialog";
 import { ScriptBuilder } from "@/components/ScriptBuilder";
+import { SQLDatabaseBuilder } from "@/components/SQLDatabaseBuilder";
+import { BuildStatusPanel } from "@/components/BuildStatusPanel";
 import { Link } from "react-router-dom";
 import { useExportChat } from "@/hooks/useExportChat";
 import { useAPKBuilder } from "@/hooks/useAPKBuilder";
@@ -45,6 +47,8 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [showFileSystem, setShowFileSystem] = useState(false);
   const [showAPKDialog, setShowAPKDialog] = useState(false);
   const [showScriptBuilder, setShowScriptBuilder] = useState(false);
+  const [showSQLBuilder, setShowSQLBuilder] = useState(false);
+  const [isBuilding, setIsBuilding] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -389,6 +393,16 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         }}
       />
 
+      {/* SQL Database Builder Dialog */}
+      <SQLDatabaseBuilder
+        open={showSQLBuilder}
+        onOpenChange={setShowSQLBuilder}
+        onGenerateSQL={(sql) => {
+          setInput(prev => prev + (prev ? '\n\n' : '') + `Generated SQL:\n\`\`\`sql\n${sql}\n\`\`\``);
+          toast({ title: "SQL Generated", description: "SQL added to your message" });
+        }}
+      />
+
       {/* Permission Dialog for File System */}
       <PermissionDialog
         open={!!fileSystem.pendingPermission}
@@ -621,6 +635,15 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
               title="Script Builder"
             >
               <FileCode className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowSQLBuilder(true)}
+              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-blue-500/10 hover:border-blue-500/50"
+              title="SQL Database Builder"
+            >
+              <Database className="h-5 w-5" />
             </Button>
             <div className="flex-1 relative">
               <Textarea
