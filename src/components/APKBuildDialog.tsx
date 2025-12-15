@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Smartphone, Copy, Check, ExternalLink, ChevronRight, Package, Terminal, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { useBuildProgress } from "@/hooks/useBuildProgress";
+import { BuildProgressTracker } from "@/components/BuildProgressTracker";
 
 interface APKBuildDialogProps {
   open: boolean;
@@ -19,8 +21,16 @@ interface APKBuildDialogProps {
 
 export const APKBuildDialog = ({ open, onOpenChange, instructions }: APKBuildDialogProps) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
   const { toast } = useToast();
+  const { progress, startBuild, updateStep, isLoading: progressLoading } = useBuildProgress();
+  const currentStep = progress?.current_step || 0;
+
+  // Start tracking when dialog opens
+  useEffect(() => {
+    if (open && !progress) {
+      startBuild("apk", instructions.length);
+    }
+  }, [open, progress, startBuild, instructions.length]);
 
   const commands = [
     { step: 2, command: "git clone <your-repo-url>" },
@@ -38,9 +48,9 @@ export const APKBuildDialog = ({ open, onOpenChange, instructions }: APKBuildDia
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handleStepComplete = (stepIndex: number) => {
+  const handleStepComplete = async (stepIndex: number) => {
     if (stepIndex === currentStep) {
-      setCurrentStep(prev => Math.min(prev + 1, instructions.length - 1));
+      await updateStep(stepIndex + 1);
     }
   };
 

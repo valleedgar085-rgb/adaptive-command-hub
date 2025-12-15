@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      build_progress: {
+        Row: {
+          build_type: string
+          completed_at: string | null
+          created_at: string
+          current_step: number
+          id: string
+          metadata: Json | null
+          started_at: string
+          status: string
+          total_steps: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          build_type?: string
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string
+          total_steps?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          build_type?: string
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string
+          total_steps?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       code_chunks: {
         Row: {
           chunk_number: number
@@ -233,6 +275,92 @@ export type Database = {
           id?: string
           updated_at?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      script_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          output: string | null
+          script_id: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          output?: string | null
+          script_id: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          output?: string | null
+          script_id?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "script_executions_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "user_scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_scripts: {
+        Row: {
+          commands: Json
+          created_at: string
+          description: string | null
+          execution_count: number | null
+          id: string
+          is_active: boolean | null
+          last_executed_at: string | null
+          name: string
+          script_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commands?: Json
+          created_at?: string
+          description?: string | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name: string
+          script_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commands?: Json
+          created_at?: string
+          description?: string | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name?: string
+          script_type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
