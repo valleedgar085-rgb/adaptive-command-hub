@@ -278,6 +278,39 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_schemas: {
+        Row: {
+          created_at: string
+          description: string | null
+          generated_sql: string | null
+          id: string
+          name: string
+          tables: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          generated_sql?: string | null
+          id?: string
+          name: string
+          tables?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          generated_sql?: string | null
+          id?: string
+          name?: string
+          tables?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       script_executions: {
         Row: {
           completed_at: string | null
