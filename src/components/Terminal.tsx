@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +9,13 @@ import { getErrorMessage } from "@/lib/utils";
 import { CodeBlock } from "@/components/CodeBlock";
 import { CodeSandbox } from "@/components/CodeSandbox";
 import { Link } from "react-router-dom";
+import { useExportChat } from "@/hooks/useExportChat";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Message {
   role: "user" | "assistant";
@@ -31,6 +38,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { exportAsMarkdown, exportAsText, exportAsPDF } = useExportChat();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -296,83 +304,78 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     return (
       <div
         key={idx}
-        className={`flex gap-3 sm:gap-4 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"}`}
+        className={`flex gap-4 sm:gap-5 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"}`}
       >
         {/* Avatar */}
         <div className="flex-shrink-0 mt-1">
           {isUser ? (
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg ring-2 ring-secondary/30">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg ring-2 ring-secondary/30">
               <span className="text-secondary-foreground font-bold text-sm">U</span>
             </div>
           ) : (
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30">
-              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-ai flex items-center justify-center shadow-lg ring-2 ${isStreaming ? 'ring-[hsl(217,91%,60%)]/50' : 'ring-[hsl(217,91%,50%)]/30'}`}>
+              <Sparkles className="h-5 w-5 sm:h-5 sm:w-5 text-white" />
             </div>
           )}
         </div>
 
         {/* Message Content */}
         <div
-          className={`flex-1 max-w-[calc(100%-3.5rem)] sm:max-w-none ${
-            isUser ? "ml-4 sm:mr-14 sm:ml-0" : "mr-4 sm:ml-14 sm:mr-0"
+          className={`flex-1 max-w-[calc(100%-4rem)] sm:max-w-[85%] ${
+            isUser ? "ml-4" : "mr-4"
           }`}
         >
           <div
             className={`rounded-2xl overflow-hidden transition-all duration-500 ${
               isUser
                 ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20"
-                : "bg-card/90 backdrop-blur-sm border-2"
-            } ${
-              isStreaming
-                ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.4)] animate-pulse"
-                : !isUser
-                  ? "border-border/60 shadow-lg"
-                  : ""
+                : `bg-card/95 backdrop-blur-sm border-2 ${isStreaming ? 'ai-glow-active' : 'ai-glow-solid'}`
             }`}
           >
             {/* AI Response Header */}
             {!isUser && (
-              <div className="px-4 py-2.5 border-b border-border/30 bg-muted/20 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Code className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="px-5 py-3 border-b border-[hsl(217,91%,50%)]/20 bg-[hsl(217,91%,60%)]/5 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-2.5 h-2.5 rounded-full ${isStreaming ? 'bg-[hsl(217,91%,60%)] animate-pulse' : 'bg-[hsl(217,91%,50%)]'}`} />
+                  <span className="text-xs font-semibold text-[hsl(217,91%,70%)] uppercase tracking-wider">
                     AI Response
                   </span>
                 </div>
                 {isStreaming && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "300ms" }} />
                     </div>
-                    <span className="text-xs text-primary font-medium">Generating...</span>
+                    <span className="text-xs text-[hsl(217,91%,70%)] font-medium">Generating...</span>
                   </div>
                 )}
               </div>
             )}
 
             {/* Message Body */}
-            <div className="p-4 space-y-4">
+            <div className={`p-5 sm:p-6 space-y-5 ${!isUser ? 'leading-relaxed' : ''}`}>
               {parts.map((part, i) => {
                 if (part.startsWith("```")) {
                   const language = extractLanguage(part);
                   const code = extractCode(part);
                   return (
-                    <CodeBlock
-                      key={i}
-                      code={code}
-                      language={language}
-                      onRunCode={handleRunCode}
-                    />
+                    <div key={i} className="my-4">
+                      <CodeBlock
+                        code={code}
+                        language={language}
+                        onRunCode={handleRunCode}
+                      />
+                    </div>
                   );
                 }
                 if (!part.trim()) return null;
                 return (
                   <p
                     key={i}
-                    className={`text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${
-                      isUser ? "text-primary-foreground" : "text-foreground"
+                    className={`text-sm sm:text-[15px] leading-7 whitespace-pre-wrap break-words ${
+                      isUser ? "text-primary-foreground" : "text-foreground/95"
                     }`}
                   >
                     {part}
@@ -383,13 +386,13 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
             {/* AI Response Footer */}
             {!isUser && msg.content && !isStreaming && (
-              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center gap-2">
+              <div className="px-5 py-3 border-t border-[hsl(217,91%,50%)]/20 bg-[hsl(217,91%,60%)]/5 flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  className="h-8 text-xs text-muted-foreground hover:text-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,60%)]/10 transition-colors"
                 >
-                  <Lightbulb className="h-3 w-3 mr-1" />
+                  <Lightbulb className="h-3.5 w-3.5 mr-1.5" />
                   Helpful
                 </Button>
               </div>
@@ -433,8 +436,8 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         </div>
       )}
 
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto space-y-8">
           {messages.length === 0 && (
             <div className="flex items-center justify-center min-h-[50vh] sm:min-h-[60vh] px-2">
               <div className="text-center space-y-6 max-w-xl w-full">
@@ -498,19 +501,19 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
           )}
           {messages.map((msg, idx) => renderMessage(msg, idx))}
           {isLoading && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
-            <div className="flex gap-3 sm:gap-4 animate-fade-in">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30">
-                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+            <div className="flex gap-4 sm:gap-5 animate-fade-in">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-ai flex items-center justify-center shadow-lg ring-2 ring-[hsl(217,91%,60%)]/50">
+                <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <div className="bg-card/90 backdrop-blur-sm border-2 border-primary shadow-[0_0_20px_rgba(var(--primary),0.4)] rounded-2xl p-4 mr-4 sm:ml-14 sm:mr-0 overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-border/30 bg-muted/20 flex items-center gap-2 -m-4 mb-3">
-                  <Code className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="bg-card/95 backdrop-blur-sm border-2 ai-glow-active rounded-2xl mr-4 sm:max-w-[85%] overflow-hidden">
+                <div className="px-5 py-3 border-b border-[hsl(217,91%,50%)]/20 bg-[hsl(217,91%,60%)]/5 flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[hsl(217,91%,60%)] animate-pulse" />
+                  <span className="text-xs font-semibold text-[hsl(217,91%,70%)] uppercase tracking-wider">
                     AI Response
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <div className="p-5 sm:p-6 flex items-center gap-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-[hsl(217,91%,60%)]" />
                   <span className="text-sm text-muted-foreground">Processing your request...</span>
                 </div>
               </div>
@@ -521,25 +524,67 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm p-4">
-        <div className="max-w-4xl mx-auto space-y-3">
-          {/* Suggestions */}
-          {messages.length > 0 && suggestions.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {suggestions.map((suggestion, idx) => (
-                <Button
-                  key={idx}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="h-8 text-xs bg-muted/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all"
-                >
-                  <Lightbulb className="h-3 w-3 mr-1.5 text-primary" />
-                  {suggestion}
-                </Button>
-              ))}
-            </div>
-          )}
+      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm p-4 sm:p-5">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {/* Export & Suggestions Row */}
+          <div className="flex items-center justify-between gap-3">
+            {/* Suggestions */}
+            {messages.length > 0 && suggestions.length > 0 && (
+              <div className="flex flex-wrap gap-2 flex-1">
+                {suggestions.map((suggestion, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="h-8 text-xs bg-muted/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all"
+                  >
+                    <Lightbulb className="h-3 w-3 mr-1.5 text-primary" />
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Export Button */}
+            {messages.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs bg-muted/30 hover:bg-[hsl(217,91%,60%)]/10 hover:border-[hsl(217,91%,60%)]/50 hover:text-[hsl(217,91%,60%)] transition-all flex-shrink-0"
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={() => exportAsMarkdown(messages)}
+                    className="cursor-pointer"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export as Markdown
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => exportAsText(messages)}
+                    className="cursor-pointer"
+                  >
+                    <File className="h-4 w-4 mr-2" />
+                    Export as Text
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => exportAsPDF(messages)}
+                    className="cursor-pointer"
+                  >
+                    <FileType className="h-4 w-4 mr-2" />
+                    Export as PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
           {/* Input */}
           <div className="relative flex items-end gap-3">
@@ -549,7 +594,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask me anything about code..."
-                className="min-h-[52px] max-h-32 pr-4 resize-none bg-background/80 border-border/50 focus:border-primary/50 rounded-xl"
+                className="min-h-[52px] max-h-32 pr-4 resize-none bg-background/80 border-border/50 focus:border-[hsl(217,91%,60%)]/50 rounded-xl"
                 disabled={isLoading}
               />
             </div>
@@ -557,7 +602,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               size="icon"
-              className="h-[52px] w-[52px] rounded-xl bg-gradient-primary hover:opacity-90 shadow-lg shadow-primary/30 transition-all"
+              className="h-[52px] w-[52px] rounded-xl bg-gradient-ai hover:opacity-90 shadow-lg shadow-[hsl(217,91%,50%)]/30 transition-all"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
