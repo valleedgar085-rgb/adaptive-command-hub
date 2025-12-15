@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils";
 import { CodeBlock } from "@/components/CodeBlock";
 import { CodeSandbox } from "@/components/CodeSandbox";
+import { AIMessage } from "@/components/AIMessage";
+import { FileSystemAccess, useFileSystem } from "@/components/FileSystemAccess";
+import { PermissionDialog } from "@/components/PermissionDialog";
 import { Link } from "react-router-dom";
 import { useExportChat } from "@/hooks/useExportChat";
 import {
@@ -35,10 +38,12 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [sandboxCode, setSandboxCode] = useState<string | null>(null);
+  const [showFileSystem, setShowFileSystem] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { exportAsMarkdown, exportAsText, exportAsPDF } = useExportChat();
+  const fileSystem = useFileSystem();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -298,113 +303,62 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     const isUser = msg.role === "user";
     const isStreaming = !isUser && idx === messages.length - 1 && isLoading;
 
-    // Parse code blocks
-    const parts = msg.content.split(/(```[\s\S]*?```)/g);
+    // Use AIMessage component for assistant messages
+    if (!isUser) {
+      return (
+        <AIMessage
+          key={idx}
+          content={msg.content}
+          isStreaming={isStreaming}
+          onRunCode={handleRunCode}
+        />
+      );
+    }
 
+    // User message rendering
     return (
       <div
         key={idx}
-        className={`flex gap-4 sm:gap-5 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"}`}
+        className="flex gap-4 sm:gap-6 animate-fade-in flex-row-reverse"
       >
-        {/* Avatar */}
+        {/* User Avatar */}
         <div className="flex-shrink-0 mt-1">
-          {isUser ? (
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg ring-2 ring-secondary/30">
-              <span className="text-secondary-foreground font-bold text-sm">U</span>
-            </div>
-          ) : (
-            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-ai flex items-center justify-center shadow-lg ring-2 ${isStreaming ? 'ring-[hsl(217,91%,60%)]/50' : 'ring-[hsl(217,91%,50%)]/30'}`}>
-              <Sparkles className="h-5 w-5 sm:h-5 sm:w-5 text-white" />
-            </div>
-          )}
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
+            <span className="text-primary-foreground font-bold text-base">U</span>
+          </div>
         </div>
 
         {/* Message Content */}
-        <div
-          className={`flex-1 max-w-[calc(100%-4rem)] sm:max-w-[85%] ${
-            isUser ? "ml-4" : "mr-4"
-          }`}
-        >
-          <div
-            className={`rounded-2xl overflow-hidden transition-all duration-500 ${
-              isUser
-                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20"
-                : `bg-card/95 backdrop-blur-sm border-2 ${isStreaming ? 'ai-glow-active' : 'ai-glow-solid'}`
-            }`}
-          >
-            {/* AI Response Header */}
-            {!isUser && (
-              <div className="px-5 py-3 border-b border-[hsl(217,91%,50%)]/20 bg-[hsl(217,91%,60%)]/5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-2.5 h-2.5 rounded-full ${isStreaming ? 'bg-[hsl(217,91%,60%)] animate-pulse' : 'bg-[hsl(217,91%,50%)]'}`} />
-                  <span className="text-xs font-semibold text-[hsl(217,91%,70%)] uppercase tracking-wider">
-                    AI Response
-                  </span>
-                </div>
-                {isStreaming && (
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </div>
-                    <span className="text-xs text-[hsl(217,91%,70%)] font-medium">Generating...</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Message Body */}
-            <div className={`p-5 sm:p-6 space-y-5 ${!isUser ? 'leading-relaxed' : ''}`}>
-              {parts.map((part, i) => {
-                if (part.startsWith("```")) {
-                  const language = extractLanguage(part);
-                  const code = extractCode(part);
-                  return (
-                    <div key={i} className="my-4">
-                      <CodeBlock
-                        code={code}
-                        language={language}
-                        onRunCode={handleRunCode}
-                      />
-                    </div>
-                  );
-                }
-                if (!part.trim()) return null;
-                return (
-                  <p
-                    key={i}
-                    className={`text-sm sm:text-[15px] leading-7 whitespace-pre-wrap break-words ${
-                      isUser ? "text-primary-foreground" : "text-foreground/95"
-                    }`}
-                  >
-                    {part}
-                  </p>
-                );
-              })}
+        <div className="flex-1 max-w-[calc(100%-5rem)] sm:max-w-[85%] ml-4">
+          <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20">
+            <div className="p-5 sm:p-6">
+              <p className="text-[15px] sm:text-base leading-7 whitespace-pre-wrap break-words">
+                {msg.content}
+              </p>
             </div>
-
-            {/* AI Response Footer */}
-            {!isUser && msg.content && !isStreaming && (
-              <div className="px-5 py-3 border-t border-[hsl(217,91%,50%)]/20 bg-[hsl(217,91%,60%)]/5 flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs text-muted-foreground hover:text-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,60%)]/10 transition-colors"
-                >
-                  <Lightbulb className="h-3.5 w-3.5 mr-1.5" />
-                  Helpful
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </div>
     );
   };
 
+  const handleFileRead = (file: { name: string; content: string }) => {
+    setInput(prev => prev + `\n\n--- File: ${file.name} ---\n${file.content.slice(0, 2000)}${file.content.length > 2000 ? '\n... (truncated)' : ''}`);
+    toast({ title: "File loaded", description: `${file.name} content added to message` });
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Permission Dialog for File System */}
+      <PermissionDialog
+        open={!!fileSystem.pendingPermission}
+        onOpenChange={(open) => !open && fileSystem.handlePermissionResponse(false)}
+        permission={fileSystem.pendingPermission?.type || "file-read"}
+        details={fileSystem.pendingPermission?.details || ""}
+        onAllow={() => fileSystem.handlePermissionResponse(true)}
+        onDeny={() => fileSystem.handlePermissionResponse(false)}
+      />
+
       {/* Connection error banner */}
       {connectionError && (
         <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2">
@@ -413,6 +367,16 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
           <Button variant="ghost" size="sm" onClick={loadMessages} className="ml-auto text-xs">
             Retry
           </Button>
+        </div>
+      )}
+
+      {/* File System Granted Permissions */}
+      {fileSystem.grantedPermissions.size > 0 && (
+        <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-2 flex items-center gap-2">
+          <Check className="h-4 w-4 text-green-500" />
+          <span className="text-xs text-green-500">
+            File system access granted ({Array.from(fileSystem.grantedPermissions).join(", ")})
+          </span>
         </div>
       )}
 
@@ -588,6 +552,18 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
           {/* Input */}
           <div className="relative flex items-end gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={async () => {
+                const file = await fileSystem.readFile();
+                if (file) handleFileRead(file);
+              }}
+              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-primary/10 hover:border-primary/50"
+              title="Open file from computer"
+            >
+              <FolderOpen className="h-5 w-5" />
+            </Button>
             <div className="flex-1 relative">
               <Textarea
                 value={input}

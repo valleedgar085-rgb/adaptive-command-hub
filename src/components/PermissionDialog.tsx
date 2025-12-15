@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, FileText, Globe, HardDrive, Clock } from "lucide-react";
+import { Shield, FileText, Globe, HardDrive, Clock, MapPin } from "lucide-react";
 
 export type PermissionType = 
   | "file-read" 
@@ -16,7 +16,8 @@ export type PermissionType =
   | "network" 
   | "storage" 
   | "timer"
-  | "clipboard";
+  | "clipboard"
+  | "geolocation";
 
 interface PermissionDialogProps {
   open: boolean;
@@ -68,6 +69,12 @@ const permissionConfig: Record<PermissionType, {
     title: "Clipboard Access",
     description: "This script wants to access your clipboard.",
     warning: "This can read or modify clipboard contents."
+  },
+  "geolocation": {
+    icon: <MapPin className="h-6 w-6 text-red-500" />,
+    title: "Location Access",
+    description: "This script wants to access your location.",
+    warning: "Your geographic location will be shared."
   }
 };
 
