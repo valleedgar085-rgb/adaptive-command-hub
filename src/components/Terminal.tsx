@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils";
+import { CodeBlock } from "@/components/CodeBlock";
+import { CodeSandbox } from "@/components/CodeSandbox";
+import { Link } from "react-router-dom";
 
 interface Message {
   role: "user" | "assistant";
@@ -24,11 +27,11 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [sandboxCode, setSandboxCode] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Smooth scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
@@ -63,7 +66,6 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     }
   }, [conversationId]);
 
-  // Load messages when conversation changes
   useEffect(() => {
     if (conversationId) {
       loadMessages();
@@ -101,7 +103,6 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     setSuggestions(newSuggestions.slice(0, 3));
   }, [messages]);
 
-  // Generate suggestions when messages change
   useEffect(() => {
     if (messages.length > 0) {
       generateSuggestions();
@@ -272,20 +273,24 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     setInput(suggestion);
   };
 
-  const handleCopy = async (content: string, index: number) => {
-    await navigator.clipboard.writeText(content);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-    toast({
-      title: "Copied!",
-      description: "Code copied to clipboard",
-    });
+  const handleRunCode = (code: string) => {
+    setSandboxCode(code);
+  };
+
+  const extractLanguage = (codeBlock: string): string => {
+    const match = codeBlock.match(/```(\w+)/);
+    return match ? match[1] : "javascript";
+  };
+
+  const extractCode = (codeBlock: string): string => {
+    return codeBlock.replace(/```[\w]*\n?/g, "").replace(/```$/g, "").trim();
   };
 
   const renderMessage = (msg: Message, idx: number) => {
     const isUser = msg.role === "user";
+    const isStreaming = !isUser && idx === messages.length - 1 && isLoading;
 
-    // Parse code blocks for syntax highlighting
+    // Parse code blocks
     const parts = msg.content.split(/(```[\s\S]*?```)/g);
 
     return (
@@ -293,82 +298,103 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         key={idx}
         className={`flex gap-3 sm:gap-4 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"}`}
       >
+        {/* Avatar */}
         <div className="flex-shrink-0 mt-1">
           {isUser ? (
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg">
-              <span className="text-secondary-foreground font-semibold text-xs sm:text-sm">U</span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-secondary flex items-center justify-center shadow-lg ring-2 ring-secondary/30">
+              <span className="text-secondary-foreground font-bold text-sm">U</span>
             </div>
           ) : (
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
-              <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
             </div>
           )}
         </div>
+
+        {/* Message Content */}
         <div
-          className={`flex-1 max-w-[calc(100%-3rem)] sm:max-w-none rounded-xl p-3 sm:p-4 space-y-3 ${
-            isUser
-              ? "bg-gradient-primary text-primary-foreground shadow-lg ml-4 sm:mr-12 sm:ml-0"
-              : "bg-card/80 backdrop-blur-sm border-2 mr-4 sm:ml-12 sm:mr-0 transition-all duration-300"
-          } ${
-            !isUser && idx === messages.length - 1 && isLoading
-              ? "border-primary/70 shadow-[0_0_15px_rgba(var(--primary),0.3)]"
-              : !isUser
-                ? "border-border/60"
-                : ""
+          className={`flex-1 max-w-[calc(100%-3.5rem)] sm:max-w-none ${
+            isUser ? "ml-4 sm:mr-14 sm:ml-0" : "mr-4 sm:ml-14 sm:mr-0"
           }`}
         >
-          <div className="space-y-2">
-            {parts.map((part, i) => {
-              if (part.startsWith("```")) {
-                const codeContent = part.replace(/```[\w]*\n?/g, "").replace(/```$/g, "");
-                return (
-                  <div key={i} className="relative group">
-                    <pre className="bg-muted/50 border border-border/30 rounded-lg p-3 sm:p-4 overflow-x-auto">
-                      <code className="text-xs sm:text-sm font-mono text-foreground leading-relaxed">
-                        {codeContent}
-                      </code>
-                    </pre>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity h-7 w-7 bg-background/80"
-                      onClick={() => handleCopy(codeContent, idx)}
-                    >
-                      {copiedIndex === idx ? (
-                        <Check className="h-3 w-3 text-primary" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </Button>
+          <div
+            className={`rounded-2xl overflow-hidden transition-all duration-500 ${
+              isUser
+                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20"
+                : "bg-card/90 backdrop-blur-sm border-2"
+            } ${
+              isStreaming
+                ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.4)] animate-pulse"
+                : !isUser
+                  ? "border-border/60 shadow-lg"
+                  : ""
+            }`}
+          >
+            {/* AI Response Header */}
+            {!isUser && (
+              <div className="px-4 py-2.5 border-b border-border/30 bg-muted/20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Code className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    AI Response
+                  </span>
+                </div>
+                {isStreaming && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                    <span className="text-xs text-primary font-medium">Generating...</span>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* Message Body */}
+            <div className="p-4 space-y-4">
+              {parts.map((part, i) => {
+                if (part.startsWith("```")) {
+                  const language = extractLanguage(part);
+                  const code = extractCode(part);
+                  return (
+                    <CodeBlock
+                      key={i}
+                      code={code}
+                      language={language}
+                      onRunCode={handleRunCode}
+                    />
+                  );
+                }
+                if (!part.trim()) return null;
+                return (
+                  <p
+                    key={i}
+                    className={`text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${
+                      isUser ? "text-primary-foreground" : "text-foreground"
+                    }`}
+                  >
+                    {part}
+                  </p>
                 );
-              }
-              // Skip empty parts
-              if (!part.trim()) return null;
-              return (
-                <p
-                  key={i}
-                  className={`text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${
-                    isUser ? "text-primary-foreground" : "text-foreground"
-                  }`}
-                >
-                  {part}
-                </p>
-              );
-            })}
-          </div>
-          {!isUser && msg.content && (
-            <div className="flex gap-2 pt-2 border-t border-border/30">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Lightbulb className="h-3 w-3 mr-1" />
-                Helpful
-              </Button>
+              })}
             </div>
-          )}
+
+            {/* AI Response Footer */}
+            {!isUser && msg.content && !isStreaming && (
+              <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Lightbulb className="h-3 w-3 mr-1" />
+                  Helpful
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -387,140 +413,159 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         </div>
       )}
 
+      {/* Code Sandbox Modal */}
+      {sandboxCode && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl">
+            <CodeSandbox
+              initialCode={sandboxCode}
+              onClose={() => setSandboxCode(null)}
+            />
+            <div className="flex justify-end mt-3">
+              <Button
+                variant="outline"
+                onClick={() => setSandboxCode(null)}
+              >
+                Close Sandbox
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6">
           {messages.length === 0 && (
             <div className="flex items-center justify-center min-h-[50vh] sm:min-h-[60vh] px-2">
-              <div className="text-center space-y-4 sm:space-y-6 max-w-xl w-full">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-accent mx-auto flex items-center justify-center shadow-2xl">
-                  <Code className="h-8 w-8 sm:h-10 sm:w-10 text-accent-foreground" />
+              <div className="text-center space-y-6 max-w-xl w-full">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-accent mx-auto flex items-center justify-center shadow-2xl ring-4 ring-primary/20">
+                  <Sparkles className="h-10 w-10 text-accent-foreground" />
                 </div>
-                <div className="space-y-2 sm:space-y-3">
-                  <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-accent bg-clip-text text-transparent">
+                <div className="space-y-3">
+                  <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-accent bg-clip-text text-transparent">
                     Elite Code Assistant
                   </h2>
-                  <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
+                  <p className="text-muted-foreground text-lg leading-relaxed">
                     Accurate, production-ready code with detailed explanations
                   </p>
                 </div>
-                <div className="grid gap-3 pt-4 sm:pt-6">
-                  <div className="p-3 sm:p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary text-lg">💡</span>
+                <div className="grid gap-3 pt-6">
+                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors group">
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        <Code className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground mb-0.5">
-                          Collaborative Coding
-                        </p>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-sm font-semibold text-foreground mb-1">Collaborative Coding</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           I generate code in meaningful chunks and pause for your review
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-3 sm:p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary text-lg">🧠</span>
+                  <div className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors group">
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        <Play className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground mb-0.5">
-                          Learning & Memory
-                        </p>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                          I remember your patterns and adapt to your coding style
+                        <p className="text-sm font-semibold text-foreground mb-1">Code Sandbox</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          Run JavaScript/TypeScript code snippets directly in the chat
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-3 sm:p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors">
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary text-lg">🎯</span>
+                  <Link 
+                    to="/terms" 
+                    className="p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 text-left hover:border-primary/50 transition-colors group block"
+                  >
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        <BookOpen className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground mb-0.5">
-                          Accuracy First
-                        </p>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                          Production-ready code with minimal bugs and best practices
+                        <p className="text-sm font-semibold text-foreground mb-1">Coding Fundamentals</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          Learn essential programming terms and concepts
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
               </div>
             </div>
           )}
           {messages.map((msg, idx) => renderMessage(msg, idx))}
-          {/* Loading indicator when waiting for response */}
           {isLoading && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
             <div className="flex gap-3 sm:gap-4 animate-fade-in">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg">
-                <Code className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
               </div>
-              <div className="bg-card/80 backdrop-blur-sm border-2 border-primary/50 shadow-lg rounded-xl p-3 sm:p-4 mr-4 sm:ml-12 sm:mr-0">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
-                  <span className="text-xs sm:text-sm text-muted-foreground">Thinking...</span>
+              <div className="bg-card/90 backdrop-blur-sm border-2 border-primary shadow-[0_0_20px_rgba(var(--primary),0.4)] rounded-2xl p-4 mr-4 sm:ml-14 sm:mr-0 overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border/30 bg-muted/20 flex items-center gap-2 -m-4 mb-3">
+                  <Code className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    AI Response
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Processing your request...</span>
                 </div>
               </div>
             </div>
           )}
-          {/* Scroll anchor */}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
-      {/* Input area */}
-      <div className="border-t border-border bg-card/30 backdrop-blur-sm p-3 sm:p-4">
-        <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
-          {/* Suggestion buttons */}
-          {suggestions.length > 0 && messages.length > 0 && !isLoading && (
-            <div className="flex gap-2 flex-wrap animate-fade-in">
+      {/* Input Area */}
+      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm p-4">
+        <div className="max-w-4xl mx-auto space-y-3">
+          {/* Suggestions */}
+          {messages.length > 0 && suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-2">
               {suggestions.map((suggestion, idx) => (
                 <Button
                   key={idx}
                   variant="outline"
                   size="sm"
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="text-xs bg-card/60 border-primary/30 hover:border-primary hover:bg-primary/10 transition-all"
-                  disabled={isLoading}
+                  className="h-8 text-xs bg-muted/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all"
                 >
+                  <Lightbulb className="h-3 w-3 mr-1.5 text-primary" />
                   {suggestion}
                 </Button>
               ))}
             </div>
           )}
-          {/* Message input */}
-          <div className="flex gap-2 sm:gap-3">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Describe what you want to build..."
-              className="min-h-[56px] sm:min-h-[70px] max-h-[200px] resize-none bg-background/80 border-border/50 focus:border-primary transition-colors text-sm sm:text-base leading-relaxed"
-              disabled={isLoading}
-            />
+
+          {/* Input */}
+          <div className="relative flex items-end gap-3">
+            <div className="flex-1 relative">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask me anything about code..."
+                className="min-h-[52px] max-h-32 pr-4 resize-none bg-background/80 border-border/50 focus:border-primary/50 rounded-xl"
+                disabled={isLoading}
+              />
+            </div>
             <Button
               onClick={handleSend}
-              disabled={isLoading || !input.trim()}
+              disabled={!input.trim() || isLoading}
               size="icon"
-              className="h-[56px] w-[56px] sm:h-[70px] sm:w-[70px] bg-gradient-primary hover:opacity-90 transition-opacity shadow-lg flex-shrink-0"
-              aria-label="Send message"
+              className="h-[52px] w-[52px] rounded-xl bg-gradient-primary hover:opacity-90 shadow-lg shadow-primary/30 transition-all"
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Send className="h-5 w-5 sm:h-6 sm:w-6" />
+                <Send className="h-5 w-5" />
               )}
             </Button>
           </div>
-          {/* Keyboard hint - hidden on mobile */}
-          <p className="hidden sm:block text-xs text-muted-foreground text-center">
-            Press Shift+Enter for new line
-          </p>
         </div>
       </div>
     </div>
