@@ -519,20 +519,26 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
           )}
           {messages.map((msg, idx) => renderMessage(msg, idx))}
           {isLoading && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
-            <div className="flex gap-4 sm:gap-5 animate-fade-in">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-ai flex items-center justify-center shadow-lg ring-2 ring-[hsl(217,91%,60%)]/50">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div className="bg-card/95 backdrop-blur-sm border-2 ai-glow-active rounded-2xl mr-4 sm:max-w-[85%] overflow-hidden">
-                <div className="px-5 py-3 border-b border-[hsl(217,91%,50%)]/20 bg-[hsl(217,91%,60%)]/5 flex items-center gap-2.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[hsl(217,91%,60%)] animate-pulse" />
-                  <span className="text-xs font-semibold text-[hsl(217,91%,70%)] uppercase tracking-wider">
-                    AI Response
-                  </span>
+            <div className="space-y-4 animate-fade-in">
+              {/* Build Status Panel */}
+              <BuildStatusPanel isBuilding={isLoading} buildType="code" className="max-w-2xl" />
+              
+              {/* AI Response Indicator */}
+              <div className="flex gap-4 sm:gap-5">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-ai flex items-center justify-center shadow-lg ring-2 ring-[hsl(217,91%,60%)]/50">
+                  <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                <div className="p-5 sm:p-6 flex items-center gap-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-[hsl(217,91%,60%)]" />
-                  <span className="text-sm text-muted-foreground">Processing your request...</span>
+                <div className="bg-card/95 backdrop-blur-sm border-2 ai-glow-active rounded-2xl mr-4 sm:max-w-[85%] overflow-hidden">
+                  <div className="px-5 py-3 border-b border-[hsl(217,91%,50%)]/20 bg-[hsl(217,91%,60%)]/5 flex items-center gap-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[hsl(217,91%,60%)] animate-pulse" />
+                    <span className="text-xs font-semibold text-[hsl(217,91%,70%)] uppercase tracking-wider">
+                      AI Response
+                    </span>
+                  </div>
+                  <div className="p-5 sm:p-6 flex items-center gap-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-[hsl(217,91%,60%)]" />
+                    <span className="text-sm text-muted-foreground">Generating response...</span>
+                  </div>
                 </div>
               </div>
             </div>
