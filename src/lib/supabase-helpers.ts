@@ -203,10 +203,7 @@ export async function createIntegration(
  * Update integration status
  */
 export async function updateIntegrationStatus(integrationId: string, enabled: boolean) {
-  const { error } = await supabase
-    .from("integrations")
-    .update({ enabled })
-    .eq("id", integrationId);
+  const { error } = await supabase.from("integrations").update({ enabled }).eq("id", integrationId);
 
   if (error) {
     console.error("Error updating integration:", error);

@@ -8,16 +8,16 @@ import {
   MenubarShortcut,
   MenubarTrigger,
 } from "@/components/ui/menubar";
-import { 
-  Home, 
-  MessageSquare, 
-  History, 
-  Settings, 
-  Info, 
+import {
+  Home,
+  MessageSquare,
+  History,
+  Settings,
+  Info,
   LogOut,
   Brain,
   Plus,
-  FileText
+  FileText,
 } from "lucide-react";
 
 interface MainMenuProps {
@@ -100,7 +100,11 @@ export const MainMenu = ({ onNewChat, onOpenSettings, onSignOut }: MainMenuProps
             <Info className="mr-2 h-4 w-4" />
             About
           </MenubarItem>
-          <MenubarItem onClick={() => window.open("https://github.com/valleedgar085-rgb/adaptive-command-hub", "_blank")}>
+          <MenubarItem
+            onClick={() =>
+              window.open("https://github.com/valleedgar085-rgb/adaptive-command-hub", "_blank")
+            }
+          >
             <FileText className="mr-2 h-4 w-4" />
             Documentation
           </MenubarItem>

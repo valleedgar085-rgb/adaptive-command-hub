@@ -120,20 +120,44 @@ cd android
 
 ```
 ├── android/              # Android native project (Capacitor)
+├── docs/                 # Documentation
+│   ├── MAIN_MENU_NAVIGATION.md      # Navigation guide
+│   ├── UI_IMPLEMENTATION_SUMMARY.md # UI components summary
+│   └── SQL_QUERY_PATTERNS.md        # Database query patterns and best practices
 ├── src/
 │   ├── components/       # React components
-│   │   ├── ui/           # shadcn/ui components
+│   │   ├── ui/           # shadcn/ui components (streamlined)
 │   │   ├── Terminal.tsx  # Main chat interface
 │   │   ├── Sidebar.tsx   # Navigation sidebar
 │   │   └── ...
 │   ├── hooks/            # Custom React hooks
 │   ├── integrations/     # External service integrations
+│   │   └── supabase/     # Supabase client and types
+│   ├── lib/              # Utility functions and helpers
+│   │   ├── utils.ts      # General utilities
+│   │   └── supabase-helpers.ts  # Type-safe database query helpers
 │   ├── pages/            # Page components
-│   └── lib/              # Utility functions
+│   └── test/             # Test setup
+├── supabase/             # Supabase configuration
+│   ├── functions/        # Edge functions
+│   └── migrations/       # Database migrations
 ├── capacitor.config.ts   # Capacitor configuration
 ├── tailwind.config.ts    # Tailwind CSS configuration
 └── vite.config.ts        # Vite configuration
 ```
+
+## Code Quality
+
+This project follows best practices for code quality and maintainability:
+
+- **Type Safety**: Full TypeScript coverage with strict mode
+- **Centralized Database Queries**: All SQL queries use type-safe helper functions in `src/lib/supabase-helpers.ts`
+- **Error Handling**: Consistent error handling across all database operations
+- **Testing**: Unit tests with Vitest and React Testing Library
+- **Code Formatting**: Prettier for consistent code style
+- **Linting**: ESLint with React-specific rules
+
+See [docs/SQL_QUERY_PATTERNS.md](docs/SQL_QUERY_PATTERNS.md) for database query best practices.
 
 ## Scripts
 

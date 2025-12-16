@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,13 +37,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   });
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (open) {
-      loadIntegrations();
-    }
-  }, [open]);
-
-  const loadIntegrations = async () => {
+  const loadIntegrations = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
       const data = await fetchUserIntegrations(currentUser.id);
@@ -56,7 +50,13 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (open) {
+      loadIntegrations();
+    }
+  }, [open, loadIntegrations]);
 
   const addIntegration = async () => {
     if (!newIntegration.name.trim()) {
