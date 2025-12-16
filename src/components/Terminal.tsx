@@ -3,9 +3,15 @@ import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle } from "lucide
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils";
+import {
+  fetchConversationMessages,
+  createConversation,
+  saveMessage,
+  getCurrentUser,
+  getCurrentSession,
+} from "@/lib/supabase-helpers";
 
 interface Message {
   role: "user" | "assistant";
@@ -41,25 +47,14 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     if (!conversationId) return;
 
     try {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        console.error("Error loading messages:", error);
-        setConnectionError("Failed to load messages. Please try again.");
-        return;
-      }
-
+      const data = await fetchConversationMessages(conversationId);
       setConnectionError(null);
       setMessages(
         data.map((msg) => ({ role: msg.role as "user" | "assistant", content: msg.content }))
       );
     } catch (err) {
-      console.error("Network error:", err);
-      setConnectionError("Network error. Please check your connection.");
+      console.error("Error loading messages:", err);
+      setConnectionError(getErrorMessage(err));
     }
   }, [conversationId]);
 
@@ -108,38 +103,14 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     }
   }, [messages, generateSuggestions]);
 
-  const createConversation = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
-
-    const { data, error } = await supabase
-      .from("conversations")
-      .insert({
-        user_id: user.id,
-        type: "chat",
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
+  const handleCreateConversation = async () => {
+    const user = await getCurrentUser();
+    const data = await createConversation(user.id, "chat");
     return data.id;
   };
 
-  const saveMessage = async (convId: string, role: string, content: string) => {
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: convId,
-      role,
-      content,
-    });
-
-    if (error) {
-      console.error("Error saving message:", error);
-    }
+  const handleSaveMessage = async (convId: string, role: "user" | "assistant", content: string) => {
+    await saveMessage(convId, role, content);
   };
 
   const handleSend = async () => {
@@ -154,17 +125,13 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
     try {
       let convId = conversationId;
       if (!convId) {
-        convId = await createConversation();
+        convId = await handleCreateConversation();
         onConversationCreate(convId);
       }
 
-      await saveMessage(convId, "user", userMessage.content);
+      await handleSaveMessage(convId, "user", userMessage.content);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error("Session expired. Please log in again.");
-
+      const session = await getCurrentSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       if (!supabaseUrl) {
         throw new Error("API configuration error. Please contact support.");
@@ -247,7 +214,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
       }
 
       if (assistantContent) {
-        await saveMessage(convId, "assistant", assistantContent);
+        await handleSaveMessage(convId, "assistant", assistantContent);
       }
     } catch (error) {
       console.error("Error:", error);

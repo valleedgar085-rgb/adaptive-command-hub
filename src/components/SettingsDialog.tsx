@@ -5,9 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2 } from "lucide-react";
+import {
+  fetchUserIntegrations,
+  createIntegration,
+  updateIntegrationStatus,
+  deleteIntegration as deleteIntegrationHelper,
+  getCurrentUser,
+} from "@/lib/supabase-helpers";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Integration {
   id: string;
@@ -37,13 +44,17 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   }, [open]);
 
   const loadIntegrations = async () => {
-    const { data, error } = await supabase
-      .from("integrations")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
+    try {
+      const currentUser = await getCurrentUser();
+      const data = await fetchUserIntegrations(currentUser.id);
       setIntegrations(data);
+    } catch (err) {
+      console.error("Error loading integrations:", err);
+      toast({
+        title: "Error",
+        description: getErrorMessage(err),
+        variant: "destructive",
+      });
     }
   };
 
@@ -57,77 +68,55 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    try {
+      const currentUser = await getCurrentUser();
+      await createIntegration(currentUser.id, newIntegration.name, newIntegration.type);
+      toast({
+        title: "Success",
+        description: "Integration added",
+      });
+      setNewIntegration({ name: "", type: "api" });
+      loadIntegrations();
+    } catch (err) {
+      console.error("Error adding integration:", err);
       toast({
         title: "Error",
-        description: "Not authenticated",
+        description: getErrorMessage(err),
         variant: "destructive",
       });
-      return;
     }
-
-    const { error } = await supabase.from("integrations").insert({
-      user_id: user.id,
-      name: newIntegration.name,
-      type: newIntegration.type,
-      config: {},
-      enabled: true,
-    });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Integration added",
-    });
-
-    setNewIntegration({ name: "", type: "api" });
-    loadIntegrations();
   };
 
   const toggleIntegration = async (id: string, enabled: boolean) => {
-    const { error } = await supabase.from("integrations").update({ enabled }).eq("id", id);
-
-    if (error) {
+    try {
+      await updateIntegrationStatus(id, enabled);
+      loadIntegrations();
+    } catch (err) {
+      console.error("Error toggling integration:", err);
       toast({
         title: "Error",
-        description: error.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
-      return;
     }
-
-    loadIntegrations();
   };
 
-  const deleteIntegration = async (id: string) => {
-    const { error } = await supabase.from("integrations").delete().eq("id", id);
-
-    if (error) {
+  const removeIntegration = async (id: string) => {
+    try {
+      await deleteIntegrationHelper(id);
+      toast({
+        title: "Success",
+        description: "Integration removed",
+      });
+      loadIntegrations();
+    } catch (err) {
+      console.error("Error removing integration:", err);
       toast({
         title: "Error",
-        description: error.message,
+        description: getErrorMessage(err),
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Integration removed",
-    });
-
-    loadIntegrations();
   };
 
   return (
@@ -193,7 +182,7 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => deleteIntegration(integration.id)}
+                          onClick={() => removeIntegration(integration.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
