@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Enhanced Design System - Clean & Professional */
 
 @layer base {
   :root {
@@ -27,7 +25,7 @@ All colors MUST be HSL.
     --border: 240 15% 18%;
     --input: 240 15% 18%;
     --ring: 263 85% 65%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --sidebar-background: 240 20% 10%;
     --sidebar-foreground: 240 10% 98%;
     --sidebar-primary: 263 85% 65%;
@@ -37,15 +35,29 @@ All colors MUST be HSL.
     --sidebar-border: 240 15% 18%;
     --sidebar-ring: 263 85% 65%;
 
-    /* AI Chat Blue Theme */
+    /* AI Chat Blue Theme - Enhanced */
     --ai-blue: 217 91% 60%;
     --ai-blue-glow: 217 91% 70%;
     --ai-blue-solid: 217 91% 50%;
+    --ai-blue-muted: 217 50% 20%;
 
+    /* Success Colors */
+    --success: 142 76% 50%;
+    --success-foreground: 240 10% 98%;
+
+    /* SQL Builder Colors */
+    --sql-accent: 200 90% 55%;
+    --sql-table: 263 60% 50%;
+    --sql-column: 200 70% 60%;
+
+    /* Enhanced Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(263 85% 65%), hsl(263 85% 55%));
     --gradient-secondary: linear-gradient(135deg, hsl(24 95% 63%), hsl(24 95% 53%));
     --gradient-accent: linear-gradient(135deg, hsl(263 85% 65%), hsl(24 95% 63%));
-    --gradient-ai: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%));
+    --gradient-ai: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 45%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 50%), hsl(142 76% 40%));
+    --gradient-sql: linear-gradient(135deg, hsl(200 90% 55%), hsl(263 60% 50%));
+    --gradient-surface: linear-gradient(180deg, hsl(240 20% 12%), hsl(240 20% 8%));
   }
 }
 
@@ -55,7 +67,6 @@ All colors MUST be HSL.
   }
 
   html {
-    /* Improve text rendering */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -63,101 +74,69 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-family:
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      "Helvetica Neue",
-      Arial,
-      sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
   }
 
-  /* Improved focus styles for accessibility */
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
-  /* Better scrollbar styling for webkit browsers */
+  /* Enhanced Scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-muted/30;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full;
+    @apply bg-muted-foreground/20 rounded-full transition-colors;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+    @apply bg-muted-foreground/40;
   }
 
-  /* Code and monospace font styling */
-  code,
-  pre,
-  kbd,
-  samp {
-    font-family:
-      "SF Mono", "Monaco", "Cascadia Code", "Roboto Mono", Consolas, "Liberation Mono", monospace;
+  /* Code Styling */
+  code, pre, kbd, samp {
+    font-family: "SF Mono", "Monaco", "Cascadia Code", "Roboto Mono", Consolas, monospace;
   }
 
-  /* Typography scale for headings */
-  h1 {
-    @apply text-3xl sm:text-4xl font-bold tracking-tight;
-  }
+  /* Typography */
+  h1 { @apply text-3xl sm:text-4xl font-bold tracking-tight; }
+  h2 { @apply text-2xl sm:text-3xl font-bold tracking-tight; }
+  h3 { @apply text-xl sm:text-2xl font-semibold; }
+  h4 { @apply text-lg sm:text-xl font-semibold; }
 
-  h2 {
-    @apply text-2xl sm:text-3xl font-bold tracking-tight;
-  }
-
-  h3 {
-    @apply text-xl sm:text-2xl font-semibold;
-  }
-
-  h4 {
-    @apply text-lg sm:text-xl font-semibold;
-  }
-
-  /* Improve touch targets for mobile */
-  button,
-  [role="button"],
-  a {
+  /* Touch Targets */
+  button, [role="button"], a {
     min-height: 44px;
     min-width: 44px;
   }
 
-  /* Exception for smaller icon buttons */
-  button.h-7,
-  button.h-8,
-  button.w-7,
-  button.w-8 {
+  button.h-7, button.h-8, button.w-7, button.w-8 {
     min-height: auto;
     min-width: auto;
   }
 }
 
-/* Prism.js Theme - Custom Dark Theme */
+/* Prism.js Theme */
 code[class*="language-"],
 pre[class*="language-"] {
   color: hsl(240 10% 90%);
   background: none;
   text-shadow: none;
-  font-family: "SF Mono", "Monaco", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  font-family: "SF Mono", "Monaco", "Cascadia Code", monospace;
   font-size: 0.875rem;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
   word-break: normal;
-  word-wrap: normal;
-  line-height: 1.6;
+  line-height: 1.7;
   tab-size: 2;
-  hyphens: none;
 }
 
 pre[class*="language-"] {
@@ -166,116 +145,122 @@ pre[class*="language-"] {
   overflow: auto;
 }
 
-.token.comment,
-.token.prolog,
-.token.doctype,
-.token.cdata {
-  color: hsl(240 10% 50%);
+.token.comment, .token.prolog, .token.doctype, .token.cdata {
+  color: hsl(240 10% 45%);
   font-style: italic;
 }
 
-.token.punctuation {
-  color: hsl(240 10% 70%);
-}
-
-.token.namespace {
-  opacity: 0.7;
-}
-
-.token.property,
-.token.tag,
-.token.boolean,
-.token.number,
-.token.constant,
-.token.symbol,
-.token.deleted {
+.token.punctuation { color: hsl(240 10% 70%); }
+.token.namespace { opacity: 0.7; }
+.token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol, .token.deleted {
   color: hsl(24 95% 65%);
 }
-
-.token.selector,
-.token.attr-name,
-.token.string,
-.token.char,
-.token.builtin,
-.token.inserted {
-  color: hsl(140 60% 65%);
+.token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted {
+  color: hsl(142 70% 60%);
 }
-
-.token.operator,
-.token.entity,
-.token.url,
-.language-css .token.string,
-.style .token.string {
+.token.operator, .token.entity, .token.url, .language-css .token.string, .style .token.string {
   color: hsl(50 90% 70%);
 }
-
-.token.atrule,
-.token.attr-value,
-.token.keyword {
+.token.atrule, .token.attr-value, .token.keyword {
   color: hsl(263 85% 75%);
 }
-
-.token.function,
-.token.class-name {
+.token.function, .token.class-name {
   color: hsl(200 90% 70%);
 }
-
-.token.regex,
-.token.important,
-.token.variable {
+.token.regex, .token.important, .token.variable {
   color: hsl(24 95% 70%);
 }
+.token.important, .token.bold { font-weight: bold; }
+.token.italic { font-style: italic; }
 
-.token.important,
-.token.bold {
-  font-weight: bold;
-}
-
-.token.italic {
-  font-style: italic;
-}
-
-.token.entity {
-  cursor: help;
-}
-
-/* Fade in animation */
+/* Enhanced Animations */
 @keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* AI Glow Animation */
-@keyframes ai-glow-pulse {
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px hsl(217 91% 60% / 0.4),
-                0 0 40px hsl(217 91% 60% / 0.2),
-                0 0 60px hsl(217 91% 60% / 0.1);
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.3),
+                0 0 40px hsl(217 91% 60% / 0.15);
   }
   50% {
-    box-shadow: 0 0 30px hsl(217 91% 60% / 0.6),
-                0 0 50px hsl(217 91% 60% / 0.3),
-                0 0 70px hsl(217 91% 60% / 0.15);
+    box-shadow: 0 0 30px hsl(217 91% 60% / 0.5),
+                0 0 60px hsl(217 91% 60% / 0.25);
   }
 }
 
+@keyframes border-glow {
+  0%, 100% { border-color: hsl(217 91% 60% / 0.5); }
+  50% { border-color: hsl(217 91% 70% / 0.8); }
+}
+
+.animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+.animate-fade-in-up { animation: fade-in-up 0.4s ease-out forwards; }
+.animate-slide-in-right { animation: slide-in-right 0.3s ease-out forwards; }
+.animate-scale-in { animation: scale-in 0.2s ease-out forwards; }
+.animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
+.animate-shimmer { animation: shimmer 2s infinite; }
+
+/* AI Glow Effects */
 .ai-glow-active {
-  animation: ai-glow-pulse 2s ease-in-out infinite;
-  border-color: hsl(217 91% 60%) !important;
+  animation: glow-pulse 2.5s ease-in-out infinite, border-glow 2.5s ease-in-out infinite;
 }
 
 .ai-glow-solid {
-  box-shadow: 0 0 15px hsl(217 91% 50% / 0.3),
-              0 4px 20px hsl(217 91% 50% / 0.15);
+  box-shadow: 0 0 20px hsl(217 91% 50% / 0.25),
+              0 4px 24px hsl(217 91% 50% / 0.15);
   border-color: hsl(217 91% 50%) !important;
+}
+
+/* Card Hover Effects */
+.card-hover {
+  @apply transition-all duration-300;
+}
+.card-hover:hover {
+  @apply border-primary/50 shadow-lg;
+  transform: translateY(-2px);
+}
+
+/* Glass Effect */
+.glass {
+  @apply bg-card/80 backdrop-blur-xl border border-border/50;
+}
+
+/* SQL Builder Specific */
+.sql-table-card {
+  @apply transition-all duration-200;
+}
+.sql-table-card:hover {
+  @apply border-primary/40 bg-muted/40;
+}
+
+/* Smooth Transitions */
+.transition-smooth {
+  @apply transition-all duration-200 ease-out;
 }
