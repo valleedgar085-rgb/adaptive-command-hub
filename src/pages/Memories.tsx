@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Brain, ArrowLeft, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchUserMemories, deleteMemory, getCurrentUser } from "@/lib/supabase-helpers";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Memory {
   id: string;
@@ -28,31 +29,14 @@ const Memories = () => {
   const loadMemories = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      if (!currentUser) {
-        toast({
-          title: "Error",
-          description: "Authentication required",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("memories")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .order("confidence", { ascending: false });
-
-      if (!error && data) {
-        setMemories(data);
-      }
+      const currentUser = await getCurrentUser();
+      const data = await fetchUserMemories(currentUser.id);
+      setMemories(data);
     } catch (err) {
       console.error("Error loading memories:", err);
       toast({
         title: "Error",
-        description: "Failed to load memories",
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -68,39 +52,23 @@ const Memories = () => {
     }
   }, [user, loading, navigate, loadMemories]);
 
-  const deleteMemory = async (id: string) => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser) {
+  const deleteMemoryHandler = async (id: string) => {
+    try {
+      const currentUser = await getCurrentUser();
+      await deleteMemory(id, currentUser.id);
+      toast({
+        title: "Success",
+        description: "Memory deleted",
+      });
+      loadMemories();
+    } catch (err) {
+      console.error("Error deleting memory:", err);
       toast({
         title: "Error",
-        description: "Authentication required",
+        description: getErrorMessage(err),
         variant: "destructive",
       });
-      return;
     }
-
-    const { error } = await supabase
-      .from("memories")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", currentUser.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete memory",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Memory deleted",
-    });
-
-    loadMemories();
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -179,7 +147,7 @@ const Memories = () => {
                         className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteMemory(memory.id);
+                          deleteMemoryHandler(memory.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />

@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, MessageSquare, Settings, LogOut, Brain, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchUserConversations, fetchUserMemories, getCurrentUser } from "@/lib/supabase-helpers";
 
 interface Conversation {
   id: string;
@@ -40,15 +40,9 @@ export const Sidebar = ({
   const loadConversations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (!error && data) {
-        setConversations(data);
-      }
+      const currentUser = await getCurrentUser();
+      const data = await fetchUserConversations(currentUser.id, 20);
+      setConversations(data);
     } catch (err) {
       console.error("Error loading conversations:", err);
     } finally {
@@ -58,15 +52,9 @@ export const Sidebar = ({
 
   const loadMemories = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("memories")
-        .select("*")
-        .order("confidence", { ascending: false })
-        .limit(10);
-
-      if (!error && data) {
-        setMemories(data);
-      }
+      const currentUser = await getCurrentUser();
+      const data = await fetchUserMemories(currentUser.id, 10);
+      setMemories(data);
     } catch (err) {
       console.error("Error loading memories:", err);
     }

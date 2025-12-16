@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, ArrowLeft, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchUserConversations, deleteConversation, getCurrentUser } from "@/lib/supabase-helpers";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Conversation {
   id: string;
@@ -25,31 +26,14 @@ const History = () => {
   const loadConversations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      if (!currentUser) {
-        toast({
-          title: "Error",
-          description: "Authentication required",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .order("updated_at", { ascending: false });
-
-      if (!error && data) {
-        setConversations(data);
-      }
+      const currentUser = await getCurrentUser();
+      const data = await fetchUserConversations(currentUser.id);
+      setConversations(data);
     } catch (err) {
       console.error("Error loading conversations:", err);
       toast({
         title: "Error",
-        description: "Failed to load conversation history",
+        description: getErrorMessage(err),
         variant: "destructive",
       });
     } finally {
@@ -65,39 +49,23 @@ const History = () => {
     }
   }, [user, loading, navigate, loadConversations]);
 
-  const deleteConversation = async (id: string) => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser) {
+  const deleteConversationHandler = async (id: string) => {
+    try {
+      const currentUser = await getCurrentUser();
+      await deleteConversation(id, currentUser.id);
+      toast({
+        title: "Success",
+        description: "Conversation deleted",
+      });
+      loadConversations();
+    } catch (err) {
+      console.error("Error deleting conversation:", err);
       toast({
         title: "Error",
-        description: "Authentication required",
+        description: getErrorMessage(err),
         variant: "destructive",
       });
-      return;
     }
-
-    const { error } = await supabase
-      .from("conversations")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", currentUser.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete conversation",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Conversation deleted",
-    });
-
-    loadConversations();
   };
 
   const formatDate = (dateString: string) => {
@@ -166,7 +134,7 @@ const History = () => {
                         className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteConversation(conv.id);
+                          deleteConversationHandler(conv.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
