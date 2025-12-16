@@ -201,9 +201,18 @@ export async function createIntegration(
 
 /**
  * Update integration status
+ * @param integrationId - The ID of the integration to update
+ * @param enabled - Whether the integration should be enabled
  */
 export async function updateIntegrationStatus(integrationId: string, enabled: boolean) {
-  const { error } = await supabase.from("integrations").update({ enabled }).eq("id", integrationId);
+  // Get current user to ensure ownership
+  const user = await getCurrentUser();
+
+  const { error } = await supabase
+    .from("integrations")
+    .update({ enabled })
+    .eq("id", integrationId)
+    .eq("user_id", user.id);
 
   if (error) {
     console.error("Error updating integration:", error);
@@ -213,9 +222,17 @@ export async function updateIntegrationStatus(integrationId: string, enabled: bo
 
 /**
  * Delete an integration
+ * @param integrationId - The ID of the integration to delete
  */
 export async function deleteIntegration(integrationId: string) {
-  const { error } = await supabase.from("integrations").delete().eq("id", integrationId);
+  // Get current user to ensure ownership
+  const user = await getCurrentUser();
+
+  const { error } = await supabase
+    .from("integrations")
+    .delete()
+    .eq("id", integrationId)
+    .eq("user_id", user.id);
 
   if (error) {
     console.error("Error deleting integration:", error);
