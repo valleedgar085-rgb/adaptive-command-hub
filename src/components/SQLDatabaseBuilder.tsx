@@ -1,5 +1,9 @@
 import { useState, useRef } from "react";
-import { Database, Play, Copy, Check, Plus, Trash2, Table2, Key, Save, FolderOpen, Loader2, Upload, Download, ChevronDown, ChevronUp, FileText, FileCode, Columns, GitBranch, Code } from "lucide-react";
+import { 
+  Database, Play, Copy, Check, Plus, Trash2, Table2, Key, Save, 
+  FolderOpen, Loader2, Upload, Download, ChevronDown, ChevronUp, 
+  FileText, FileCode, Columns, GitBranch, Code, Sparkles 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -39,6 +43,14 @@ const SQL_TYPES = [
   "jsonb", "varchar(255)", "numeric", "date", "time"
 ];
 
+const DEFAULT_COLUMN: Column = {
+  name: "",
+  type: "text",
+  nullable: true,
+  primaryKey: false,
+  defaultValue: ""
+};
+
 export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDatabaseBuilderProps) => {
   const [tables, setTables] = useState<Table[]>([]);
   const [currentTable, setCurrentTable] = useState<Table>({ name: "", columns: [] });
@@ -58,23 +70,24 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
   const { toast } = useToast();
   const { schemas, isLoading, saveSchema, updateSchema, deleteSchema } = useSavedSchemas();
 
+  // Toggle table expansion
   const toggleTableExpanded = (index: number) => {
     setExpandedTables(prev => {
       const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
+      next.has(index) ? next.delete(index) : next.add(index);
       return next;
     });
   };
 
+  // Column operations
   const addColumn = () => {
     setCurrentTable(prev => ({
       ...prev,
-      columns: [...prev.columns, { name: "", type: "text", nullable: true, primaryKey: false, defaultValue: "" }]
+      columns: [...prev.columns, { ...DEFAULT_COLUMN }]
     }));
   };
 
-  const updateColumn = (index: number, field: keyof Column, value: any) => {
+  const updateColumn = (index: number, field: keyof Column, value: string | boolean) => {
     setCurrentTable(prev => ({
       ...prev,
       columns: prev.columns.map((col, i) => i === index ? { ...col, [field]: value } : col)
@@ -88,26 +101,34 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     }));
   };
 
+  // Table operations
   const addTable = () => {
     if (!currentTable.name.trim()) {
       toast({ title: "Error", description: "Table name is required", variant: "destructive" });
       return;
     }
+    if (currentTable.columns.length === 0) {
+      toast({ title: "Error", description: "Add at least one column", variant: "destructive" });
+      return;
+    }
     setTables(prev => [...prev, { ...currentTable }]);
     setCurrentTable({ name: "", columns: [] });
     setExpandedTables(prev => new Set([...prev, tables.length]));
+    toast({ title: "Table Added", description: `"${currentTable.name}" added to schema` });
   };
 
   const removeTable = (index: number) => {
+    const tableName = tables[index]?.name;
     setTables(prev => prev.filter((_, i) => i !== index));
     setExpandedTables(prev => {
       const next = new Set(prev);
       next.delete(index);
       return next;
     });
+    toast({ title: "Table Removed", description: `"${tableName}" removed from schema` });
   };
 
-  // Generate well-formatted, readable SQL
+  // Generate formatted SQL
   const generateSQL = () => {
     if (tables.length === 0) {
       toast({ title: "Error", description: "Add at least one table first", variant: "destructive" });
@@ -117,70 +138,59 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     const lines: string[] = [];
     const indent = "    ";
     
-    // Header comment
-    lines.push("-- ==========================================================");
-    lines.push(`-- Database Schema: ${schemaName || "Untitled Schema"}`);
-    lines.push(`-- Generated: ${new Date().toISOString()}`);
-    lines.push("-- ==========================================================");
+    // Header
+    lines.push("-- ══════════════════════════════════════════════════════════");
+    lines.push(`-- Schema: ${schemaName || "Untitled Schema"}`);
+    lines.push(`-- Generated: ${new Date().toLocaleString()}`);
+    lines.push("-- ══════════════════════════════════════════════════════════");
     lines.push("");
 
     for (const table of tables) {
-      // Table header
-      lines.push(`-- ----------------------------------------------------------`);
+      lines.push(`-- ──────────────────────────────────────────────────────────`);
       lines.push(`-- Table: ${table.name}`);
-      lines.push(`-- ----------------------------------------------------------`);
+      lines.push(`-- ──────────────────────────────────────────────────────────`);
       lines.push("");
       lines.push(`CREATE TABLE public.${table.name} (`);
       
-      const columnLines: string[] = [];
+      const columnDefs: string[] = [];
       const constraints: string[] = [];
       
       for (const col of table.columns) {
-        let def = `${indent}${col.name.padEnd(20)} ${col.type.toUpperCase()}`;
+        let def = `${indent}${col.name.padEnd(24)} ${col.type.toUpperCase()}`;
         
-        if (!col.nullable) {
-          def += " NOT NULL";
-        }
+        if (!col.nullable) def += " NOT NULL";
         
         if (col.defaultValue) {
-          if (col.defaultValue.includes("(") || col.defaultValue === "now()" || col.defaultValue === "gen_random_uuid()") {
-            def += ` DEFAULT ${col.defaultValue}`;
-          } else if (col.type === "text" || col.type.startsWith("varchar")) {
-            def += ` DEFAULT '${col.defaultValue}'`;
-          } else {
-            def += ` DEFAULT ${col.defaultValue}`;
-          }
+          const needsQuotes = col.type === "text" || col.type.startsWith("varchar");
+          const isFunction = col.defaultValue.includes("(") || ["now()", "gen_random_uuid()"].includes(col.defaultValue);
+          def += ` DEFAULT ${isFunction ? col.defaultValue : needsQuotes ? `'${col.defaultValue}'` : col.defaultValue}`;
         }
         
-        columnLines.push(def);
+        columnDefs.push(def);
         
-        // Collect primary key constraint
         if (col.primaryKey) {
           constraints.push(`${indent}PRIMARY KEY (${col.name})`);
         }
         
-        // Collect foreign key constraint
         if (col.foreignKey) {
           const [refTable, refCol] = col.foreignKey.split(".");
           constraints.push(`${indent}FOREIGN KEY (${col.name}) REFERENCES public.${refTable}(${refCol || "id"}) ON DELETE CASCADE`);
         }
       }
       
-      // Combine columns and constraints
-      const allDefs = [...columnLines, ...constraints];
-      lines.push(allDefs.join(",\n"));
+      lines.push([...columnDefs, ...constraints].join(",\n"));
       lines.push(");");
       lines.push("");
       
-      // Enable RLS
+      // RLS
       lines.push(`-- Enable Row Level Security`);
       lines.push(`ALTER TABLE public.${table.name} ENABLE ROW LEVEL SECURITY;`);
       lines.push("");
       
-      // Add index for foreign keys
+      // Indexes for foreign keys
       const fkColumns = table.columns.filter(c => c.foreignKey);
       if (fkColumns.length > 0) {
-        lines.push(`-- Indexes for foreign keys`);
+        lines.push(`-- Foreign Key Indexes`);
         for (const col of fkColumns) {
           lines.push(`CREATE INDEX idx_${table.name}_${col.name} ON public.${table.name}(${col.name});`);
         }
@@ -188,15 +198,15 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
       }
     }
     
-    // Add comment footer
-    lines.push("-- ==========================================================");
+    lines.push("-- ══════════════════════════════════════════════════════════");
     lines.push("-- End of Schema");
-    lines.push("-- ==========================================================");
+    lines.push("-- ══════════════════════════════════════════════════════════");
 
     const sql = lines.join("\n");
     setGeneratedSQL(sql);
     onGenerateSQL?.(sql);
-    toast({ title: "SQL Generated", description: "SQL code has been generated successfully" });
+    setActiveTab("sql");
+    toast({ title: "SQL Generated", description: "Schema code is ready" });
   };
 
   const copySQL = async () => {
@@ -206,6 +216,7 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     toast({ title: "Copied", description: "SQL copied to clipboard" });
   };
 
+  // Save/Load operations
   const handleSaveSchema = async () => {
     if (!schemaName.trim()) {
       toast({ title: "Error", description: "Schema name is required", variant: "destructive" });
@@ -240,7 +251,7 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     setExpandedTables(new Set());
   };
 
-  // Parse SQL to extract tables
+  // Parse SQL for import
   const parseSQL = (sql: string): Table[] => {
     const parsedTables: Table[] = [];
     const createTableRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?(\w+)\s*\(([\s\S]*?)\);/gi;
@@ -251,14 +262,9 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
       const columnsStr = match[2];
       const columns: Column[] = [];
       
-      const columnLines = columnsStr.split(",").map(line => line.trim()).filter(line => 
-        line && 
-        !line.toUpperCase().startsWith("CONSTRAINT") && 
-        !line.toUpperCase().startsWith("PRIMARY KEY") && 
-        !line.toUpperCase().startsWith("FOREIGN KEY") &&
-        !line.toUpperCase().startsWith("UNIQUE") &&
-        !line.toUpperCase().startsWith("CHECK")
-      );
+      const columnLines = columnsStr.split(",")
+        .map(line => line.trim())
+        .filter(line => line && !line.toUpperCase().match(/^(CONSTRAINT|PRIMARY KEY|FOREIGN KEY|UNIQUE|CHECK)/));
       
       for (const line of columnLines) {
         const parts = line.split(/\s+/);
@@ -266,7 +272,6 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
           const colName = parts[0].replace(/"/g, "");
           let colType = parts[1].toLowerCase();
           
-          // Normalize type
           if (colType === "timestamp" && parts[2]?.toLowerCase() === "with") {
             colType = "timestamp with time zone";
           }
@@ -281,7 +286,6 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
             defaultValue = defaultMatch[1].replace(/^'|'$/g, "");
           }
           
-          // Extract foreign key reference
           let foreignKey = "";
           const refMatch = line.match(/REFERENCES\s+(?:public\.)?(\w+)\((\w+)\)/i);
           if (refMatch) {
@@ -315,7 +319,7 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     
     const parsedTables = parseSQL(importSQL);
     if (parsedTables.length === 0) {
-      toast({ title: "Error", description: "Could not parse any tables from the SQL", variant: "destructive" });
+      toast({ title: "Error", description: "Could not parse any tables from SQL", variant: "destructive" });
       return;
     }
     
@@ -330,42 +334,29 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setImportSQL(content);
-    };
+    reader.onload = (event) => setImportSQL(event.target?.result as string);
     reader.readAsText(file);
   };
 
   const downloadSQL = (format: "sql" | "json") => {
-    let content: string;
-    let filename: string;
-    let mimeType: string;
+    const content = format === "sql" 
+      ? generatedSQL 
+      : JSON.stringify({ name: schemaName, description: schemaDescription, tables, sql: generatedSQL }, null, 2);
     
-    if (format === "sql") {
-      content = generatedSQL;
-      filename = `${schemaName || "schema"}.sql`;
-      mimeType = "text/plain";
-    } else {
-      content = JSON.stringify({ name: schemaName, description: schemaDescription, tables, sql: generatedSQL }, null, 2);
-      filename = `${schemaName || "schema"}.json`;
-      mimeType = "application/json";
-    }
-    
-    const blob = new Blob([content], { type: mimeType });
+    const blob = new Blob([content], { type: format === "sql" ? "text/plain" : "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = filename;
+    a.download = `${schemaName || "schema"}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    toast({ title: "Downloaded", description: `Schema saved as ${filename}` });
+    toast({ title: "Downloaded", description: `Schema saved as ${a.download}` });
   };
 
-  // Get all table names for foreign key selection
+  // Get available foreign key references
   const allTableColumns = tables.flatMap(t => 
     t.columns.filter(c => c.primaryKey).map(c => `${t.name}.${c.name}`)
   );
@@ -373,271 +364,284 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden">
-          <DialogHeader className="p-4 pb-3 bg-gradient-to-r from-primary/10 to-secondary/10 border-b border-border/50 shrink-0">
+        <DialogContent className="w-[95vw] max-w-6xl h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden glass">
+          {/* Header */}
+          <DialogHeader className="p-5 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 shrink-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-ai flex items-center justify-center shadow-lg">
-                  <Database className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-sql flex items-center justify-center shadow-lg">
+                  <Database className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <DialogTitle className="text-lg font-bold">
+                  <DialogTitle className="text-lg font-bold flex items-center gap-2">
                     SQL Database Builder
-                    {schemaName && <span className="text-muted-foreground font-normal ml-2">- {schemaName}</span>}
+                    {schemaName && (
+                      <span className="text-sm font-normal text-muted-foreground">— {schemaName}</span>
+                    )}
                   </DialogTitle>
-                  <DialogDescription className="text-muted-foreground text-xs">
-                    Design your database schema visually with relationships
+                  <DialogDescription className="text-muted-foreground text-sm">
+                    Design your database schema visually
                   </DialogDescription>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="h-8 text-xs">
-                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="h-9 gap-2">
+                  <Upload className="h-4 w-4" />
                   Import
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowLoadDialog(true)} className="h-8 text-xs">
-                  <FolderOpen className="h-3.5 w-3.5 mr-1.5" />
+                <Button variant="outline" size="sm" onClick={() => setShowLoadDialog(true)} className="h-9 gap-2">
+                  <FolderOpen className="h-4 w-4" />
                   Load
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)} disabled={tables.length === 0} className="h-8 text-xs">
-                  <Save className="h-3.5 w-3.5 mr-1.5" />
+                <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)} disabled={tables.length === 0} className="h-9 gap-2">
+                  <Save className="h-4 w-4" />
                   Save
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleNewSchema} className="h-8 text-xs">
+                <Button variant="ghost" size="sm" onClick={handleNewSchema} className="h-9">
                   New
                 </Button>
               </div>
             </div>
           </DialogHeader>
 
+          {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="mx-4 mt-2 w-fit shrink-0">
-              <TabsTrigger value="builder" className="text-xs gap-1.5">
-                <Table2 className="h-3.5 w-3.5" />
+            <TabsList className="mx-5 mt-4 w-fit shrink-0 bg-muted/50 p-1">
+              <TabsTrigger value="builder" className="gap-2 data-[state=active]:bg-card">
+                <Table2 className="h-4 w-4" />
                 Table Builder
               </TabsTrigger>
-              <TabsTrigger value="diagram" className="text-xs gap-1.5">
-                <GitBranch className="h-3.5 w-3.5" />
-                Relationship Diagram
+              <TabsTrigger value="diagram" className="gap-2 data-[state=active]:bg-card">
+                <GitBranch className="h-4 w-4" />
+                Relationships
               </TabsTrigger>
-              <TabsTrigger value="sql" className="text-xs gap-1.5">
-                <Code className="h-3.5 w-3.5" />
+              <TabsTrigger value="sql" className="gap-2 data-[state=active]:bg-card">
+                <Code className="h-4 w-4" />
                 Generated SQL
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="builder" className="flex-1 min-h-0 m-0 p-4 pt-2">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
-                {/* Left: Table Builder */}
-                <div className="border border-border/50 rounded-lg flex flex-col overflow-hidden bg-card">
-                  <div className="p-3 border-b border-border/50 bg-muted/20 shrink-0">
-                    <Label className="text-xs font-semibold mb-1.5 block">Create New Table</Label>
+            {/* Builder Tab */}
+            <TabsContent value="builder" className="flex-1 min-h-0 m-0 p-5 pt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full">
+                {/* Left Panel: Create Table */}
+                <div className="border border-border/50 rounded-xl flex flex-col overflow-hidden bg-card/50">
+                  <div className="p-4 border-b border-border/50 bg-muted/30 shrink-0">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <Label className="font-semibold">Create New Table</Label>
+                    </div>
                     <Input
-                      placeholder="e.g., posts, comments, products"
+                      placeholder="Table name (e.g., users, posts, products)"
                       value={currentTable.name}
                       onChange={(e) => setCurrentTable(prev => ({ ...prev, name: e.target.value }))}
-                      className="mb-2 h-8 text-sm"
+                      className="mb-3 h-10 bg-background/50"
                     />
-                    <Button onClick={addColumn} variant="outline" size="sm" className="w-full h-8 text-xs">
-                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    <Button onClick={addColumn} variant="outline" size="sm" className="w-full gap-2">
+                      <Plus className="h-4 w-4" />
                       Add Column
                     </Button>
                   </div>
 
                   {/* Columns Section */}
                   <Collapsible open={columnsExpanded} onOpenChange={setColumnsExpanded} className="flex-1 flex flex-col min-h-0">
-                    <CollapsibleTrigger className="flex items-center justify-between p-2 bg-muted/30 border-b border-border/30 hover:bg-muted/40 transition-colors shrink-0">
-                      <span className="text-xs font-medium flex items-center gap-1.5">
-                        <Columns className="h-3.5 w-3.5" />
+                    <CollapsibleTrigger className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border/30 hover:bg-muted/30 transition-colors shrink-0">
+                      <span className="text-sm font-medium flex items-center gap-2">
+                        <Columns className="h-4 w-4 text-muted-foreground" />
                         Columns ({currentTable.columns.length})
                       </span>
-                      {columnsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      {columnsExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </CollapsibleTrigger>
                     <CollapsibleContent className="flex-1 min-h-0 overflow-hidden">
-                      <ScrollArea className="h-full max-h-[200px]">
-                        <div className="p-2 space-y-2">
-                          {currentTable.columns.length === 0 && (
-                            <p className="text-xs text-muted-foreground text-center py-4">
+                      <ScrollArea className="h-full max-h-[280px]">
+                        <div className="p-3 space-y-3">
+                          {currentTable.columns.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-8">
                               No columns yet. Click "Add Column" to start.
                             </p>
+                          ) : (
+                            currentTable.columns.map((col, index) => (
+                              <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-3 animate-fade-in">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="Column name"
+                                    value={col.name}
+                                    onChange={(e) => updateColumn(index, "name", e.target.value)}
+                                    className="flex-1 h-9 bg-background/50"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeColumn(index)}
+                                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Select value={col.type} onValueChange={(v) => updateColumn(index, "type", v)}>
+                                    <SelectTrigger className="h-9 bg-background/50">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {SQL_TYPES.map(type => (
+                                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    placeholder="Default value"
+                                    value={col.defaultValue}
+                                    onChange={(e) => updateColumn(index, "defaultValue", e.target.value)}
+                                    className="h-9 bg-background/50"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-4 text-sm">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <Switch
+                                      checked={col.primaryKey}
+                                      onCheckedChange={(v) => updateColumn(index, "primaryKey", v)}
+                                    />
+                                    <Key className="h-3.5 w-3.5 text-amber-500" />
+                                    <span className="text-muted-foreground">Primary Key</span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <Switch
+                                      checked={!col.nullable}
+                                      onCheckedChange={(v) => updateColumn(index, "nullable", !v)}
+                                    />
+                                    <span className="text-muted-foreground">Required</span>
+                                  </label>
+                                </div>
+                                {allTableColumns.length > 0 && (
+                                  <Select
+                                    value={col.foreignKey || "none"}
+                                    onValueChange={(v) => updateColumn(index, "foreignKey", v === "none" ? "" : v)}
+                                  >
+                                    <SelectTrigger className="h-9 bg-background/50">
+                                      <SelectValue placeholder="Foreign Key (optional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">No Foreign Key</SelectItem>
+                                      {allTableColumns.map(ref => (
+                                        <SelectItem key={ref} value={ref}>{ref}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+                            ))
                           )}
-                          {currentTable.columns.map((col, index) => (
-                            <div key={index} className="p-2 rounded-lg bg-muted/30 border border-border/50 space-y-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <Input
-                                  placeholder="Column name"
-                                  value={col.name}
-                                  onChange={(e) => updateColumn(index, "name", e.target.value)}
-                                  className="flex-1 h-7 text-xs"
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeColumn(index)}
-                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                              <div className="grid grid-cols-2 gap-1.5">
-                                <Select value={col.type} onValueChange={(v) => updateColumn(index, "type", v)}>
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {SQL_TYPES.map(type => (
-                                      <SelectItem key={type} value={type} className="text-xs">{type}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Input
-                                  placeholder="Default"
-                                  value={col.defaultValue}
-                                  onChange={(e) => updateColumn(index, "defaultValue", e.target.value)}
-                                  className="h-7 text-xs"
-                                />
-                              </div>
-                              <div className="flex items-center gap-3 text-xs">
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                  <Switch
-                                    checked={col.primaryKey}
-                                    onCheckedChange={(v) => updateColumn(index, "primaryKey", v)}
-                                    className="scale-75"
-                                  />
-                                  <Key className="h-3 w-3 text-amber-500" />
-                                  PK
-                                </label>
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                  <Switch
-                                    checked={!col.nullable}
-                                    onCheckedChange={(v) => updateColumn(index, "nullable", !v)}
-                                    className="scale-75"
-                                  />
-                                  Required
-                                </label>
-                              </div>
-                              {/* Foreign Key Selection */}
-                              {allTableColumns.length > 0 && (
-                                <Select
-                                  value={col.foreignKey || "none"}
-                                  onValueChange={(v) => updateColumn(index, "foreignKey", v === "none" ? "" : v)}
-                                >
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue placeholder="Foreign Key (optional)" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none" className="text-xs">No Foreign Key</SelectItem>
-                                    {allTableColumns.map(ref => (
-                                      <SelectItem key={ref} value={ref} className="text-xs">{ref}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                          ))}
                         </div>
                       </ScrollArea>
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <div className="p-3 border-t border-border/50 bg-muted/20 shrink-0">
+                  <div className="p-4 border-t border-border/50 bg-muted/20 shrink-0">
                     <Button
                       onClick={addTable}
                       disabled={!currentTable.name.trim() || currentTable.columns.length === 0}
-                      className="w-full h-8 text-xs"
+                      className="w-full gap-2"
                     >
-                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                      <Plus className="h-4 w-4" />
                       Add Table to Schema
                     </Button>
                   </div>
                 </div>
 
-                {/* Right: Tables List */}
-                <div className="border border-border/50 rounded-lg flex flex-col overflow-hidden bg-card">
-                  <div className="p-3 border-b border-border/50 bg-muted/20 shrink-0">
+                {/* Right Panel: Schema Tables */}
+                <div className="border border-border/50 rounded-xl flex flex-col overflow-hidden bg-card/50">
+                  <div className="p-4 border-b border-border/50 bg-muted/30 shrink-0">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold">Tables in Schema ({tables.length})</Label>
-                      <Button onClick={generateSQL} disabled={tables.length === 0} size="sm" className="h-7 text-xs">
-                        <Play className="h-3.5 w-3.5 mr-1.5" />
+                      <Label className="font-semibold">Schema Tables ({tables.length})</Label>
+                      <Button onClick={generateSQL} disabled={tables.length === 0} size="sm" className="gap-2">
+                        <Play className="h-4 w-4" />
                         Generate SQL
                       </Button>
                     </div>
                   </div>
                   <ScrollArea className="flex-1">
-                    <div className="p-2 space-y-2">
-                      {tables.length === 0 && (
-                        <p className="text-xs text-muted-foreground text-center py-8">
-                          No tables yet. Create your first table using the builder on the left.
-                        </p>
+                    <div className="p-3 space-y-2">
+                      {tables.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Table2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                          <p className="text-sm text-muted-foreground">No tables yet</p>
+                          <p className="text-xs text-muted-foreground/70 mt-1">Create your first table using the builder</p>
+                        </div>
+                      ) : (
+                        tables.map((table, index) => (
+                          <Collapsible
+                            key={index}
+                            open={expandedTables.has(index)}
+                            onOpenChange={() => toggleTableExpanded(index)}
+                          >
+                            <div className="rounded-lg border border-border/50 bg-muted/20 overflow-hidden sql-table-card animate-fade-in">
+                              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
+                                <div className="flex items-center gap-3">
+                                  <Table2 className="h-4 w-4 text-primary" />
+                                  <span className="font-medium">{table.name}</span>
+                                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                                    {table.columns.length} columns
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => { e.stopPropagation(); removeTable(index); }}
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                  {expandedTables.has(index) ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                                </div>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="border-t border-border/30 p-3 space-y-1.5">
+                                  {table.columns.map((col, colIndex) => (
+                                    <div key={colIndex} className="flex items-center gap-2 text-sm px-3 py-2 rounded-md bg-background/50">
+                                      {col.primaryKey && <Key className="h-3.5 w-3.5 text-amber-500" />}
+                                      <span className="font-mono font-medium">{col.name}</span>
+                                      <span className="text-muted-foreground text-xs">{col.type}</span>
+                                      {!col.nullable && <span className="text-destructive text-xs font-medium">NOT NULL</span>}
+                                      {col.foreignKey && (
+                                        <span className="text-primary text-xs">→ {col.foreignKey}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </div>
+                          </Collapsible>
+                        ))
                       )}
-                      {tables.map((table, index) => (
-                        <Collapsible
-                          key={index}
-                          open={expandedTables.has(index)}
-                          onOpenChange={() => toggleTableExpanded(index)}
-                        >
-                          <div className="rounded-lg border border-border/50 bg-muted/20 overflow-hidden">
-                            <CollapsibleTrigger className="w-full flex items-center justify-between p-2 hover:bg-muted/30 transition-colors">
-                              <div className="flex items-center gap-2">
-                                <Table2 className="h-4 w-4 text-primary" />
-                                <span className="font-medium text-sm">{table.name}</span>
-                                <span className="text-xs text-muted-foreground">({table.columns.length} cols)</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => { e.stopPropagation(); removeTable(index); }}
-                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                                {expandedTables.has(index) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                              </div>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="border-t border-border/30 p-2 space-y-1">
-                                {table.columns.map((col, colIndex) => (
-                                  <div key={colIndex} className="flex items-center gap-2 text-xs px-2 py-1 rounded bg-background/50">
-                                    {col.primaryKey && <Key className="h-3 w-3 text-amber-500" />}
-                                    <span className="font-mono">{col.name}</span>
-                                    <span className="text-muted-foreground">{col.type}</span>
-                                    {!col.nullable && <span className="text-destructive text-[10px]">NOT NULL</span>}
-                                    {col.foreignKey && (
-                                      <span className="text-primary text-[10px]">→ {col.foreignKey}</span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </CollapsibleContent>
-                          </div>
-                        </Collapsible>
-                      ))}
                     </div>
                   </ScrollArea>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="diagram" className="flex-1 min-h-0 m-0 p-4 pt-2">
-              <div className="h-full border border-border/50 rounded-lg overflow-hidden bg-card">
+            {/* Diagram Tab */}
+            <TabsContent value="diagram" className="flex-1 min-h-0 m-0 p-5 pt-4">
+              <div className="h-full border border-border/50 rounded-xl overflow-hidden bg-card/50">
                 <SchemaRelationshipDiagram tables={tables} />
               </div>
             </TabsContent>
 
-            <TabsContent value="sql" className="flex-1 min-h-0 m-0 p-4 pt-2">
-              <div className="h-full flex flex-col border border-border/50 rounded-lg overflow-hidden bg-card">
-                <div className="flex items-center justify-between p-3 border-b border-border/50 bg-muted/20 shrink-0">
-                  <Label className="text-xs font-semibold">Generated SQL Code</Label>
-                  <div className="flex items-center gap-1.5">
+            {/* SQL Tab */}
+            <TabsContent value="sql" className="flex-1 min-h-0 m-0 p-5 pt-4">
+              <div className="h-full flex flex-col border border-border/50 rounded-xl overflow-hidden bg-card/50">
+                <div className="flex items-center justify-between p-4 border-b border-border/50 bg-muted/30 shrink-0">
+                  <Label className="font-semibold">Generated SQL Code</Label>
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => downloadSQL("sql")}
                       disabled={!generatedSQL}
-                      className="h-7 text-xs"
+                      className="h-9 gap-2"
                     >
-                      <FileCode className="h-3.5 w-3.5 mr-1.5" />
+                      <FileCode className="h-4 w-4" />
                       .sql
                     </Button>
                     <Button
@@ -645,9 +649,9 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                       size="sm"
                       onClick={() => downloadSQL("json")}
                       disabled={!generatedSQL}
-                      className="h-7 text-xs"
+                      className="h-9 gap-2"
                     >
-                      <FileText className="h-3.5 w-3.5 mr-1.5" />
+                      <FileText className="h-4 w-4" />
                       .json
                     </Button>
                     <Button
@@ -655,23 +659,23 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                       size="sm"
                       onClick={copySQL}
                       disabled={!generatedSQL}
-                      className="h-7 text-xs"
+                      className="h-9 gap-2"
                     >
-                      {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                       {copied ? "Copied" : "Copy"}
                     </Button>
                   </div>
                 </div>
                 <ScrollArea className="flex-1">
                   {generatedSQL ? (
-                    <pre className="p-4 text-xs font-mono leading-relaxed whitespace-pre text-foreground">
+                    <pre className="p-5 text-sm font-mono leading-relaxed whitespace-pre text-foreground">
                       {generatedSQL}
                     </pre>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                      <div className="text-center">
-                        <Code className="h-12 w-12 mx-auto mb-2 opacity-30" />
-                        <p>Click "Generate SQL" to see your schema code</p>
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center py-12">
+                        <Code className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                        <p className="text-sm text-muted-foreground">Click "Generate SQL" to see your schema</p>
                       </div>
                     </div>
                   )}
@@ -684,76 +688,76 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
 
       {/* Save Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md glass">
           <DialogHeader>
-            <DialogTitle className="text-base">Save Schema</DialogTitle>
-            <DialogDescription className="text-xs">Save your schema to load it later</DialogDescription>
+            <DialogTitle>Save Schema</DialogTitle>
+            <DialogDescription>Save your schema to load it later</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <Label className="text-xs">Schema Name *</Label>
+              <Label>Schema Name *</Label>
               <Input
                 value={schemaName}
                 onChange={(e) => setSchemaName(e.target.value)}
                 placeholder="My Database Schema"
-                className="h-8 text-sm mt-1"
+                className="mt-2"
               />
             </div>
             <div>
-              <Label className="text-xs">Description</Label>
+              <Label>Description</Label>
               <Textarea
                 value={schemaDescription}
                 onChange={(e) => setSchemaDescription(e.target.value)}
                 placeholder="Optional description..."
-                className="text-sm mt-1 resize-none"
+                className="mt-2 resize-none"
                 rows={2}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleSaveSchema}>{currentSchemaId ? "Update" : "Save"}</Button>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveSchema}>{currentSchemaId ? "Update" : "Save"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Load Dialog */}
       <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md glass">
           <DialogHeader>
-            <DialogTitle className="text-base">Load Schema</DialogTitle>
-            <DialogDescription className="text-xs">Select a saved schema to load</DialogDescription>
+            <DialogTitle>Load Schema</DialogTitle>
+            <DialogDescription>Select a saved schema to load</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[300px]">
+          <ScrollArea className="max-h-[350px]">
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : schemas.length === 0 ? (
-              <p className="text-center text-muted-foreground text-sm py-8">No saved schemas</p>
+              <p className="text-center text-muted-foreground py-12">No saved schemas</p>
             ) : (
-              <div className="space-y-2 pr-2">
+              <div className="space-y-2 pr-3">
                 {schemas.map(schema => (
                   <div
                     key={schema.id}
-                    className="p-3 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="p-4 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-all hover:border-primary/30 card-hover"
                     onClick={() => handleLoadSchema(schema)}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{schema.name}</span>
+                      <span className="font-medium">{schema.name}</span>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); deleteSchema(schema.id); }}
-                        className="h-6 w-6 p-0 text-destructive"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                     {schema.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{schema.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{schema.description}</p>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground/70 mt-2">
                       {schema.tables.length} table(s) • Updated {new Date(schema.updated_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -766,12 +770,12 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
 
       {/* Import Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg glass">
           <DialogHeader>
-            <DialogTitle className="text-base">Import SQL Schema</DialogTitle>
-            <DialogDescription className="text-xs">Paste SQL or upload a .sql file</DialogDescription>
+            <DialogTitle>Import SQL Schema</DialogTitle>
+            <DialogDescription>Paste SQL or upload a .sql file</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
               <input
                 ref={fileInputRef}
@@ -782,28 +786,27 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
               />
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full h-8 text-xs"
+                className="w-full gap-2"
               >
-                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                <Upload className="h-4 w-4" />
                 Upload .sql File
               </Button>
             </div>
             <div>
-              <Label className="text-xs">Or paste SQL directly:</Label>
+              <Label>Or paste SQL directly:</Label>
               <Textarea
                 value={importSQL}
                 onChange={(e) => setImportSQL(e.target.value)}
                 placeholder="CREATE TABLE public.users (..."
-                className="text-xs font-mono mt-1 resize-none"
-                rows={8}
+                className="mt-2 font-mono text-sm resize-none"
+                rows={10}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setShowImportDialog(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleImportSQL}>Import</Button>
+            <Button variant="outline" onClick={() => setShowImportDialog(false)}>Cancel</Button>
+            <Button onClick={handleImportSQL}>Import</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

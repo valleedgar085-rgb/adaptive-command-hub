@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Table2, Key, ArrowRight, ZoomIn, ZoomOut, Move } from "lucide-react";
+import { Table2, Key, ArrowRight, ZoomIn, ZoomOut, Move, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Column {
@@ -28,75 +28,110 @@ interface SchemaRelationshipDiagramProps {
 export const SchemaRelationshipDiagram = ({ tables }: SchemaRelationshipDiagramProps) => {
   const [positions, setPositions] = useState<Record<string, TablePosition>>({});
   const [dragging, setDragging] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize table positions in a grid layout
-  useEffect(() => {
+  // Initialize positions in a grid layout
+  const initializePositions = () => {
     const newPositions: Record<string, TablePosition> = {};
     const cols = Math.ceil(Math.sqrt(tables.length));
+    const spacing = { x: 280, y: 220 };
+    
     tables.forEach((table, index) => {
       const col = index % cols;
       const row = Math.floor(index / cols);
       newPositions[table.name] = {
-        x: 40 + col * 220,
-        y: 40 + row * 180
+        x: 50 + col * spacing.x,
+        y: 50 + row * spacing.y
       };
     });
     setPositions(newPositions);
-  }, [tables]);
+  };
 
-  // Extract relationships from foreign keys
+  useEffect(() => {
+    initializePositions();
+  }, [tables.length]);
+
+  // Extract relationships
   const relationships = tables.flatMap(table =>
     table.columns
       .filter(col => col.foreignKey)
       .map(col => {
-        const [refTable] = col.foreignKey!.split(".");
+        const [refTable, refCol] = col.foreignKey!.split(".");
         return {
           from: table.name,
           fromColumn: col.name,
           to: refTable,
-          toColumn: col.foreignKey!.split(".")[1] || "id"
+          toColumn: refCol || "id"
         };
       })
   );
 
   const handleMouseDown = (tableName: string, e: React.MouseEvent) => {
     e.preventDefault();
+    const pos = positions[tableName];
+    if (!pos || !containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    setDragOffset({
+      x: (e.clientX - rect.left) / zoom - pos.x,
+      y: (e.clientY - rect.top) / zoom - pos.y
+    });
     setDragging(tableName);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragging || !containerRef.current) return;
+    
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left - offset.x) / zoom;
-    const y = (e.clientY - rect.top - offset.y) / zoom;
+    const x = (e.clientX - rect.left) / zoom - dragOffset.x;
+    const y = (e.clientY - rect.top) / zoom - dragOffset.y;
+    
     setPositions(prev => ({
       ...prev,
-      [dragging]: { x: Math.max(0, x - 80), y: Math.max(0, y - 20) }
+      [dragging]: { x: Math.max(0, x), y: Math.max(0, y) }
     }));
   };
 
   const handleMouseUp = () => setDragging(null);
 
-  const getConnectionPoints = (from: string, to: string) => {
+  const getConnectionPath = (from: string, to: string) => {
     const fromPos = positions[from];
     const toPos = positions[to];
     if (!fromPos || !toPos) return null;
 
-    const fromCenter = { x: fromPos.x + 90, y: fromPos.y + 60 };
-    const toCenter = { x: toPos.x + 90, y: toPos.y + 60 };
+    const tableWidth = 200;
+    const tableHeight = 120;
+    
+    const fromCenter = { x: fromPos.x + tableWidth / 2, y: fromPos.y + tableHeight / 2 };
+    const toCenter = { x: toPos.x + tableWidth / 2, y: toPos.y + tableHeight / 2 };
 
-    return { fromCenter, toCenter };
+    // Calculate curve
+    const dx = toCenter.x - fromCenter.x;
+    const dy = toCenter.y - fromCenter.y;
+    const midX = (fromCenter.x + toCenter.x) / 2;
+    const midY = (fromCenter.y + toCenter.y) / 2;
+    
+    // Perpendicular offset for curve
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const curvature = Math.min(50, dist * 0.15);
+    const perpX = (-dy / dist) * curvature;
+    const perpY = (dx / dist) * curvature;
+
+    return {
+      path: `M ${fromCenter.x} ${fromCenter.y} Q ${midX + perpX} ${midY + perpY} ${toCenter.x} ${toCenter.y}`,
+      labelPos: { x: midX + perpX, y: midY + perpY - 12 }
+    };
   };
 
   if (tables.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-        <div className="text-center">
-          <Table2 className="h-12 w-12 mx-auto mb-2 opacity-30" />
-          <p>Add tables to see relationships</p>
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <div className="text-center py-12">
+          <Table2 className="h-16 w-16 mx-auto mb-4 opacity-20" />
+          <p className="text-lg font-medium mb-1">No Tables Yet</p>
+          <p className="text-sm text-muted-foreground/70">Add tables to see relationships</p>
         </div>
       </div>
     );
@@ -105,38 +140,32 @@ export const SchemaRelationshipDiagram = ({ tables }: SchemaRelationshipDiagramP
   return (
     <div className="h-full flex flex-col">
       {/* Controls */}
-      <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-muted/20">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setZoom(z => Math.min(2, z + 0.1))}
-          className="h-7 w-7 p-0"
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
+      <div className="flex items-center gap-3 p-3 border-b border-border/50 bg-muted/20 shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="h-8 w-8">
+          <ZoomIn className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
-          className="h-7 w-7 p-0"
-        >
-          <ZoomOut className="h-3.5 w-3.5" />
+        <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))} className="h-8 w-8">
+          <ZoomOut className="h-4 w-4" />
         </Button>
-        <span className="text-xs text-muted-foreground">{Math.round(zoom * 100)}%</span>
-        <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-          <Move className="h-3 w-3" />
-          Drag tables to reposition
+        <span className="text-sm text-muted-foreground font-medium">{Math.round(zoom * 100)}%</span>
+        <Button variant="ghost" size="icon" onClick={initializePositions} className="h-8 w-8" title="Reset Layout">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+        <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+          <Move className="h-4 w-4" />
+          <span>Drag tables to reposition</span>
         </div>
       </div>
 
-      {/* Diagram Canvas */}
+      {/* Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 relative overflow-auto bg-[repeating-linear-gradient(0deg,transparent,transparent_19px,hsl(var(--border)/0.3)_20px),repeating-linear-gradient(90deg,transparent,transparent_19px,hsl(var(--border)/0.3)_20px)]"
+        className="flex-1 relative overflow-auto bg-[repeating-linear-gradient(0deg,transparent,transparent_24px,hsl(var(--border)/0.2)_25px),repeating-linear-gradient(90deg,transparent,transparent_24px,hsl(var(--border)/0.2)_25px)]"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        {/* SVG Connections */}
         <svg
           className="absolute inset-0 pointer-events-none"
           style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
@@ -144,48 +173,41 @@ export const SchemaRelationshipDiagram = ({ tables }: SchemaRelationshipDiagramP
           <defs>
             <marker
               id="arrowhead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="9"
-              refY="3.5"
+              markerWidth="12"
+              markerHeight="8"
+              refX="10"
+              refY="4"
               orient="auto"
             >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="hsl(var(--primary))"
-              />
+              <polygon points="0 0, 12 4, 0 8" fill="hsl(var(--primary))" opacity="0.8" />
             </marker>
+            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+              <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+            </linearGradient>
           </defs>
           {relationships.map((rel, i) => {
-            const points = getConnectionPoints(rel.from, rel.to);
-            if (!points) return null;
-            const { fromCenter, toCenter } = points;
-            
-            // Calculate control points for curved line
-            const midX = (fromCenter.x + toCenter.x) / 2;
-            const midY = (fromCenter.y + toCenter.y) / 2;
-            const dx = toCenter.x - fromCenter.x;
-            const dy = toCenter.y - fromCenter.y;
-            const perpX = -dy * 0.2;
-            const perpY = dx * 0.2;
+            const connection = getConnectionPath(rel.from, rel.to);
+            if (!connection) return null;
 
             return (
-              <g key={i}>
+              <g key={i} className="animate-fade-in">
                 <path
-                  d={`M ${fromCenter.x} ${fromCenter.y} Q ${midX + perpX} ${midY + perpY} ${toCenter.x} ${toCenter.y}`}
+                  d={connection.path}
                   fill="none"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth="2"
-                  strokeDasharray="5,3"
+                  stroke="url(#lineGradient)"
+                  strokeWidth="2.5"
+                  strokeDasharray="8,4"
                   markerEnd="url(#arrowhead)"
-                  opacity={0.7}
                 />
                 <text
-                  x={midX + perpX}
-                  y={midY + perpY - 5}
-                  fontSize="9"
+                  x={connection.labelPos.x}
+                  y={connection.labelPos.y}
+                  fontSize="11"
                   fill="hsl(var(--muted-foreground))"
                   textAnchor="middle"
+                  className="font-mono"
                 >
                   {rel.fromColumn} → {rel.toColumn}
                 </text>
@@ -194,60 +216,59 @@ export const SchemaRelationshipDiagram = ({ tables }: SchemaRelationshipDiagramP
           })}
         </svg>
 
-        {/* Tables */}
+        {/* Table Cards */}
         <div style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}>
           {tables.map(table => {
             const pos = positions[table.name] || { x: 0, y: 0 };
             const pkColumns = table.columns.filter(c => c.primaryKey);
             const fkColumns = table.columns.filter(c => c.foreignKey);
-            const otherColumns = table.columns.filter(c => !c.primaryKey && !c.foreignKey);
+            const regularColumns = table.columns.filter(c => !c.primaryKey && !c.foreignKey);
 
             return (
               <div
                 key={table.name}
-                className="absolute bg-card border border-border rounded-lg shadow-lg cursor-move select-none"
+                className={`absolute bg-card border-2 rounded-xl shadow-xl cursor-move select-none transition-shadow ${
+                  dragging === table.name ? "border-primary shadow-2xl shadow-primary/20" : "border-border/50 hover:border-primary/50"
+                }`}
                 style={{
                   left: pos.x,
                   top: pos.y,
-                  minWidth: "180px",
-                  maxWidth: "200px"
+                  width: "200px"
                 }}
                 onMouseDown={(e) => handleMouseDown(table.name, e)}
               >
-                {/* Table Header */}
-                <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-t-lg border-b border-border/50">
-                  <Table2 className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-semibold text-xs truncate">{table.name}</span>
+                {/* Header */}
+                <div className="flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-primary/15 to-primary/5 rounded-t-xl border-b border-border/50">
+                  <Table2 className="h-4 w-4 text-primary" />
+                  <span className="font-bold text-sm truncate">{table.name}</span>
                 </div>
 
                 {/* Columns */}
-                <div className="p-2 space-y-0.5 max-h-[120px] overflow-y-auto text-[10px]">
+                <div className="p-3 space-y-1 max-h-[140px] overflow-y-auto">
                   {pkColumns.map(col => (
-                    <div key={col.name} className="flex items-center gap-1.5 text-amber-500">
-                      <Key className="h-2.5 w-2.5" />
+                    <div key={col.name} className="flex items-center gap-2 text-xs text-amber-500 py-1">
+                      <Key className="h-3 w-3 flex-shrink-0" />
                       <span className="font-medium truncate">{col.name}</span>
-                      <span className="text-muted-foreground ml-auto">{col.type}</span>
+                      <span className="text-muted-foreground ml-auto text-[10px]">{col.type}</span>
                     </div>
                   ))}
                   {fkColumns.map(col => (
-                    <div key={col.name} className="flex items-center gap-1.5 text-primary">
-                      <ArrowRight className="h-2.5 w-2.5" />
+                    <div key={col.name} className="flex items-center gap-2 text-xs text-primary py-1">
+                      <ArrowRight className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">{col.name}</span>
-                      <span className="text-muted-foreground ml-auto truncate" title={col.foreignKey}>
-                        FK
-                      </span>
+                      <span className="text-muted-foreground ml-auto text-[10px]">FK</span>
                     </div>
                   ))}
-                  {otherColumns.slice(0, 4).map(col => (
-                    <div key={col.name} className="flex items-center gap-1.5 text-muted-foreground">
-                      <span className="w-2.5" />
+                  {regularColumns.slice(0, 3).map(col => (
+                    <div key={col.name} className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                      <span className="w-3" />
                       <span className="truncate">{col.name}</span>
-                      <span className="ml-auto">{col.type}</span>
+                      <span className="ml-auto text-[10px]">{col.type}</span>
                     </div>
                   ))}
-                  {otherColumns.length > 4 && (
-                    <div className="text-muted-foreground/60 pl-4">
-                      +{otherColumns.length - 4} more columns
+                  {regularColumns.length > 3 && (
+                    <div className="text-xs text-muted-foreground/50 pl-5 py-1">
+                      +{regularColumns.length - 3} more
                     </div>
                   )}
                 </div>
@@ -258,17 +279,17 @@ export const SchemaRelationshipDiagram = ({ tables }: SchemaRelationshipDiagramP
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 p-2 border-t border-border/50 bg-muted/20 text-[10px]">
-        <div className="flex items-center gap-1">
-          <Key className="h-3 w-3 text-amber-500" />
+      <div className="flex items-center gap-6 p-3 border-t border-border/50 bg-muted/20 text-sm">
+        <div className="flex items-center gap-2">
+          <Key className="h-4 w-4 text-amber-500" />
           <span className="text-muted-foreground">Primary Key</span>
         </div>
-        <div className="flex items-center gap-1">
-          <ArrowRight className="h-3 w-3 text-primary" />
+        <div className="flex items-center gap-2">
+          <ArrowRight className="h-4 w-4 text-primary" />
           <span className="text-muted-foreground">Foreign Key</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-0.5 border-t-2 border-dashed border-primary" />
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-0.5 border-t-2 border-dashed border-primary/60" />
           <span className="text-muted-foreground">Relationship</span>
         </div>
       </div>
