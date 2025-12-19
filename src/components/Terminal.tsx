@@ -547,12 +547,12 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         </div>
       </ScrollArea>
 
-      {/* Input Area */}
-      <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm p-4 sm:p-5">
+      {/* Input Area - Enhanced with better animations and contrast */}
+      <div className="border-t-2 border-primary/20 bg-gradient-to-t from-card via-card/95 to-transparent backdrop-blur-xl p-4 sm:p-6 transition-all duration-300">
         <div className="max-w-4xl mx-auto space-y-4">
           {/* Export & Suggestions Row */}
           <div className="flex items-center justify-between gap-3">
-            {/* Suggestions */}
+            {/* Suggestions with enhanced styling */}
             {messages.length > 0 && suggestions.length > 0 && (
               <div className="flex flex-wrap gap-2 flex-1">
                 {suggestions.map((suggestion, idx) => (
@@ -561,9 +561,9 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                     variant="outline"
                     size="sm"
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="h-8 text-xs bg-muted/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all"
+                    className="h-9 text-xs font-medium bg-primary/5 border-primary/20 hover:bg-primary/15 hover:border-primary/40 hover:text-primary hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-0.5"
                   >
-                    <Lightbulb className="h-3 w-3 mr-1.5 text-primary" />
+                    <Lightbulb className="h-3.5 w-3.5 mr-1.5 text-primary" />
                     {suggestion}
                   </Button>
                 ))}
@@ -577,30 +577,30 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs bg-muted/30 hover:bg-[hsl(217,91%,60%)]/10 hover:border-[hsl(217,91%,60%)]/50 hover:text-[hsl(217,91%,60%)] transition-all flex-shrink-0"
+                    className="h-9 text-xs font-medium bg-accent/10 border-accent/30 hover:bg-accent/20 hover:border-accent/50 hover:text-accent-foreground transition-all duration-300 flex-shrink-0"
                   >
                     <Download className="h-3.5 w-3.5 mr-1.5" />
                     Export
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-48 border-border/50 bg-card/95 backdrop-blur-xl shadow-xl">
                   <DropdownMenuItem 
                     onClick={() => exportAsMarkdown(messages)}
-                    className="cursor-pointer"
+                    className="cursor-pointer hover:bg-primary/10"
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Export as Markdown
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => exportAsText(messages)}
-                    className="cursor-pointer"
+                    className="cursor-pointer hover:bg-primary/10"
                   >
                     <File className="h-4 w-4 mr-2" />
                     Export as Text
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => exportAsPDF(messages)}
-                    className="cursor-pointer"
+                    className="cursor-pointer hover:bg-primary/10"
                   >
                     <FileType className="h-4 w-4 mr-2" />
                     Export as PDF
@@ -610,62 +610,70 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
             )}
           </div>
 
-          {/* Input */}
+          {/* Enhanced Input with better visual feedback */}
           <div className="relative flex items-end gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={async () => {
-                const file = await fileSystem.readFile();
-                if (file) handleFileRead(file);
-              }}
-              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-primary/10 hover:border-primary/50"
-              title="Open file from computer"
-            >
-              <FolderOpen className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowAPKDialog(true)}
-              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-green-500/10 hover:border-green-500/50"
-              title="Build Android APK"
-            >
-              <Smartphone className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowScriptBuilder(true)}
-              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-amber-500/10 hover:border-amber-500/50"
-              title="Script Builder"
-            >
-              <FileCode className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowSQLBuilder(true)}
-              className="h-[52px] w-[52px] rounded-xl bg-muted/30 hover:bg-blue-500/10 hover:border-blue-500/50"
-              title="SQL Database Builder"
-            >
-              <Database className="h-5 w-5" />
-            </Button>
-            <div className="flex-1 relative">
+            {/* Tool Buttons with improved contrast */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={async () => {
+                  const file = await fileSystem.readFile();
+                  if (file) handleFileRead(file);
+                }}
+                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-emerald-500/15 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
+                title="Open file from computer"
+              >
+                <FolderOpen className="h-5 w-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowAPKDialog(true)}
+                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-green-500/15 hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
+                title="Build Android APK"
+              >
+                <Smartphone className="h-5 w-5 text-muted-foreground group-hover:text-green-500 transition-colors" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowScriptBuilder(true)}
+                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-amber-500/15 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
+                title="Script Builder"
+              >
+                <FileCode className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowSQLBuilder(true)}
+                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-blue-500/15 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
+                title="SQL Database Builder"
+              >
+                <Database className="h-5 w-5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+              </Button>
+            </div>
+            
+            {/* Main Input with enhanced focus states */}
+            <div className="flex-1 relative group">
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500 -z-10" />
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask me anything about code..."
-                className="min-h-[52px] max-h-32 pr-4 resize-none bg-background/80 border-border/50 focus:border-[hsl(217,91%,60%)]/50 rounded-xl"
+                className="min-h-[52px] max-h-40 pr-4 resize-none bg-background/90 border-2 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 rounded-xl shadow-inner transition-all duration-300 text-foreground placeholder:text-muted-foreground/60"
                 disabled={isLoading}
               />
             </div>
+            
+            {/* Send Button with enhanced animation */}
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
               size="icon"
-              className="h-[52px] w-[52px] rounded-xl bg-gradient-ai hover:opacity-90 shadow-lg shadow-[hsl(217,91%,50%)]/30 transition-all"
+              className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 hover:from-primary/90 hover:via-primary/80 hover:to-primary/70 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -673,6 +681,13 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                 <Send className="h-5 w-5" />
               )}
             </Button>
+          </div>
+          
+          {/* Keyboard hint */}
+          <div className="flex justify-center">
+            <p className="text-[10px] text-muted-foreground/50">
+              Press <kbd className="px-1.5 py-0.5 rounded bg-muted/50 text-[9px] font-mono mx-0.5">Enter</kbd> to send • <kbd className="px-1.5 py-0.5 rounded bg-muted/50 text-[9px] font-mono mx-0.5">Shift+Enter</kbd> for new line
+            </p>
           </div>
         </div>
       </div>
