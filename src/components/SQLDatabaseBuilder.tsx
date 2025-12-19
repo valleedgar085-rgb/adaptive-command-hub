@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { 
   Database, Play, Copy, Check, Plus, Trash2, Table2, Key, Save, 
   FolderOpen, Loader2, Upload, Download, ChevronDown, ChevronUp, 
-  FileText, FileCode, Columns, GitBranch, Code, Sparkles 
+  FileText, FileCode, Columns, GitBranch, Code, Sparkles, Zap,
+  Users, ShoppingCart, FileStack, Calendar, MessageSquare, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -17,6 +18,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useSavedSchemas } from "@/hooks/useSavedSchemas";
 import { SchemaRelationshipDiagram } from "./SchemaRelationshipDiagram";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Type Definitions
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface Column {
   name: string;
@@ -38,9 +43,13 @@ interface SQLDatabaseBuilderProps {
   onGenerateSQL?: (sql: string) => void;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Constants & Templates
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const SQL_TYPES = [
   "uuid", "text", "integer", "bigint", "boolean", "timestamp with time zone",
-  "jsonb", "varchar(255)", "numeric", "date", "time"
+  "jsonb", "varchar(255)", "numeric", "date", "time", "serial", "smallint"
 ];
 
 const DEFAULT_COLUMN: Column = {
@@ -50,6 +59,92 @@ const DEFAULT_COLUMN: Column = {
   primaryKey: false,
   defaultValue: ""
 };
+
+// Quick Builder Templates - Pre-built table structures
+const QUICK_TEMPLATES = {
+  users: {
+    name: "users",
+    icon: Users,
+    description: "User accounts with authentication",
+    columns: [
+      { name: "id", type: "uuid", nullable: false, primaryKey: true, defaultValue: "gen_random_uuid()" },
+      { name: "email", type: "varchar(255)", nullable: false, primaryKey: false, defaultValue: "" },
+      { name: "username", type: "varchar(255)", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "avatar_url", type: "text", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "created_at", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "now()" },
+      { name: "updated_at", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "now()" }
+    ]
+  },
+  posts: {
+    name: "posts",
+    icon: FileStack,
+    description: "Blog posts or articles",
+    columns: [
+      { name: "id", type: "uuid", nullable: false, primaryKey: true, defaultValue: "gen_random_uuid()" },
+      { name: "user_id", type: "uuid", nullable: false, primaryKey: false, defaultValue: "", foreignKey: "users.id" },
+      { name: "title", type: "varchar(255)", nullable: false, primaryKey: false, defaultValue: "" },
+      { name: "content", type: "text", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "published", type: "boolean", nullable: false, primaryKey: false, defaultValue: "false" },
+      { name: "created_at", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "now()" }
+    ]
+  },
+  products: {
+    name: "products",
+    icon: ShoppingCart,
+    description: "E-commerce products",
+    columns: [
+      { name: "id", type: "uuid", nullable: false, primaryKey: true, defaultValue: "gen_random_uuid()" },
+      { name: "name", type: "varchar(255)", nullable: false, primaryKey: false, defaultValue: "" },
+      { name: "description", type: "text", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "price", type: "numeric", nullable: false, primaryKey: false, defaultValue: "0" },
+      { name: "stock", type: "integer", nullable: false, primaryKey: false, defaultValue: "0" },
+      { name: "image_url", type: "text", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "created_at", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "now()" }
+    ]
+  },
+  events: {
+    name: "events",
+    icon: Calendar,
+    description: "Calendar events or schedules",
+    columns: [
+      { name: "id", type: "uuid", nullable: false, primaryKey: true, defaultValue: "gen_random_uuid()" },
+      { name: "title", type: "varchar(255)", nullable: false, primaryKey: false, defaultValue: "" },
+      { name: "description", type: "text", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "start_time", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "" },
+      { name: "end_time", type: "timestamp with time zone", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "location", type: "text", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "created_at", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "now()" }
+    ]
+  },
+  comments: {
+    name: "comments",
+    icon: MessageSquare,
+    description: "User comments or feedback",
+    columns: [
+      { name: "id", type: "uuid", nullable: false, primaryKey: true, defaultValue: "gen_random_uuid()" },
+      { name: "user_id", type: "uuid", nullable: false, primaryKey: false, defaultValue: "", foreignKey: "users.id" },
+      { name: "content", type: "text", nullable: false, primaryKey: false, defaultValue: "" },
+      { name: "parent_id", type: "uuid", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "created_at", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "now()" }
+    ]
+  },
+  settings: {
+    name: "settings",
+    icon: Settings,
+    description: "App configuration settings",
+    columns: [
+      { name: "id", type: "uuid", nullable: false, primaryKey: true, defaultValue: "gen_random_uuid()" },
+      { name: "key", type: "varchar(255)", nullable: false, primaryKey: false, defaultValue: "" },
+      { name: "value", type: "jsonb", nullable: true, primaryKey: false, defaultValue: "'{}'" },
+      { name: "description", type: "text", nullable: true, primaryKey: false, defaultValue: "" },
+      { name: "updated_at", type: "timestamp with time zone", nullable: false, primaryKey: false, defaultValue: "now()" }
+    ]
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Main Component
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDatabaseBuilderProps) => {
   const [tables, setTables] = useState<Table[]>([]);
@@ -78,6 +173,21 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
       return next;
     });
   };
+
+  // Quick Builder - Add template tables instantly
+  const addQuickTemplate = useCallback((templateKey: keyof typeof QUICK_TEMPLATES) => {
+    const template = QUICK_TEMPLATES[templateKey];
+    const existingNames = tables.map(t => t.name);
+    
+    if (existingNames.includes(template.name)) {
+      toast({ title: "Table Exists", description: `"${template.name}" already in schema`, variant: "destructive" });
+      return;
+    }
+    
+    setTables(prev => [...prev, { name: template.name, columns: [...template.columns] }]);
+    setExpandedTables(prev => new Set([...prev, tables.length]));
+    toast({ title: "Quick Add", description: `"${template.name}" table added` });
+  }, [tables, toast]);
 
   // Column operations
   const addColumn = () => {
@@ -421,23 +531,50 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
               </TabsTrigger>
             </TabsList>
 
-            {/* Builder Tab */}
+            {/* Builder Tab - Enhanced with Quick Builder */}
             <TabsContent value="builder" className="flex-1 min-h-0 m-0 p-5 pt-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full">
                 {/* Left Panel: Create Table */}
-                <div className="border border-border/50 rounded-xl flex flex-col overflow-hidden bg-card/50">
-                  <div className="p-4 border-b border-border/50 bg-muted/30 shrink-0">
+                <div className="border-2 border-border/50 rounded-xl flex flex-col overflow-hidden bg-card/80 shadow-lg">
+                  {/* Quick Builder Section */}
+                  <div className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="h-4 w-4 text-primary" />
+                      <Label className="font-bold text-foreground">Quick Builder</Label>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {Object.entries(QUICK_TEMPLATES).map(([key, template]) => {
+                        const IconComponent = template.icon;
+                        return (
+                          <Button
+                            key={key}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addQuickTemplate(key as keyof typeof QUICK_TEMPLATES)}
+                            className="h-auto py-2 px-3 flex flex-col items-center gap-1.5 bg-background/50 border-border/50 hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all duration-300 group"
+                            title={template.description}
+                          >
+                            <IconComponent className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <span className="text-xs font-medium capitalize">{template.name}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Manual Table Creation */}
+                  <div className="p-4 border-b border-border/50 bg-muted/30">
                     <div className="flex items-center gap-2 mb-3">
                       <Sparkles className="h-4 w-4 text-primary" />
-                      <Label className="font-semibold">Create New Table</Label>
+                      <Label className="font-semibold text-foreground">Create Custom Table</Label>
                     </div>
                     <Input
                       placeholder="Table name (e.g., users, posts, products)"
                       value={currentTable.name}
                       onChange={(e) => setCurrentTable(prev => ({ ...prev, name: e.target.value }))}
-                      className="mb-3 h-10 bg-background/50"
+                      className="mb-3 h-11 bg-background/80 border-2 border-border/50 focus:border-primary/50 text-foreground placeholder:text-muted-foreground/60"
                     />
-                    <Button onClick={addColumn} variant="outline" size="sm" className="w-full gap-2">
+                    <Button onClick={addColumn} variant="outline" size="sm" className="w-full gap-2 h-10 bg-background/50 border-border/50 hover:bg-primary/10 hover:border-primary/40">
                       <Plus className="h-4 w-4" />
                       Add Column
                     </Button>
@@ -445,9 +582,9 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
 
                   {/* Columns Section */}
                   <Collapsible open={columnsExpanded} onOpenChange={setColumnsExpanded} className="flex-1 flex flex-col min-h-0">
-                    <CollapsibleTrigger className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border/30 hover:bg-muted/30 transition-colors shrink-0">
-                      <span className="text-sm font-medium flex items-center gap-2">
-                        <Columns className="h-4 w-4 text-muted-foreground" />
+                    <CollapsibleTrigger className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border/30 hover:bg-muted/40 transition-colors shrink-0">
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Columns className="h-4 w-4 text-primary" />
                         Columns ({currentTable.columns.length})
                       </span>
                       {columnsExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -457,35 +594,35 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                         <div className="p-3 space-y-3">
                           {currentTable.columns.length === 0 ? (
                             <p className="text-sm text-muted-foreground text-center py-8">
-                              No columns yet. Click "Add Column" to start.
+                              No columns yet. Click "Add Column" or use Quick Builder.
                             </p>
                           ) : (
                             currentTable.columns.map((col, index) => (
-                              <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border/50 space-y-3 animate-fade-in">
+                              <div key={index} className="p-4 rounded-xl bg-background/60 border-2 border-border/50 space-y-3 animate-fade-in hover:border-primary/30 transition-colors">
                                 <div className="flex items-center gap-2">
                                   <Input
                                     placeholder="Column name"
                                     value={col.name}
                                     onChange={(e) => updateColumn(index, "name", e.target.value)}
-                                    className="flex-1 h-9 bg-background/50"
+                                    className="flex-1 h-10 bg-muted/30 border-border/50 focus:border-primary/50 text-foreground font-medium"
                                   />
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => removeColumn(index)}
-                                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    className="h-10 w-10 text-destructive/70 hover:text-destructive hover:bg-destructive/10 transition-colors"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <Select value={col.type} onValueChange={(v) => updateColumn(index, "type", v)}>
-                                    <SelectTrigger className="h-9 bg-background/50">
+                                    <SelectTrigger className="h-10 bg-muted/30 border-border/50 text-foreground">
                                       <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-card border-border">
                                       {SQL_TYPES.map(type => (
-                                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                                        <SelectItem key={type} value={type} className="text-foreground">{type}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -493,24 +630,24 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                                     placeholder="Default value"
                                     value={col.defaultValue}
                                     onChange={(e) => updateColumn(index, "defaultValue", e.target.value)}
-                                    className="h-9 bg-background/50"
+                                    className="h-10 bg-muted/30 border-border/50 text-foreground placeholder:text-muted-foreground/50"
                                   />
                                 </div>
-                                <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-6 text-sm">
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <Switch
                                       checked={col.primaryKey}
                                       onCheckedChange={(v) => updateColumn(index, "primaryKey", v)}
                                     />
-                                    <Key className="h-3.5 w-3.5 text-amber-500" />
-                                    <span className="text-muted-foreground">Primary Key</span>
+                                    <Key className="h-4 w-4 text-amber-500" />
+                                    <span className="text-foreground/80 font-medium">Primary Key</span>
                                   </label>
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <Switch
                                       checked={!col.nullable}
                                       onCheckedChange={(v) => updateColumn(index, "nullable", !v)}
                                     />
-                                    <span className="text-muted-foreground">Required</span>
+                                    <span className="text-foreground/80 font-medium">Required</span>
                                   </label>
                                 </div>
                                 {allTableColumns.length > 0 && (
@@ -518,13 +655,13 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                                     value={col.foreignKey || "none"}
                                     onValueChange={(v) => updateColumn(index, "foreignKey", v === "none" ? "" : v)}
                                   >
-                                    <SelectTrigger className="h-9 bg-background/50">
+                                    <SelectTrigger className="h-10 bg-muted/30 border-border/50 text-foreground">
                                       <SelectValue placeholder="Foreign Key (optional)" />
                                     </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="none">No Foreign Key</SelectItem>
+                                    <SelectContent className="bg-card border-border">
+                                      <SelectItem value="none" className="text-foreground">No Foreign Key</SelectItem>
                                       {allTableColumns.map(ref => (
-                                        <SelectItem key={ref} value={ref}>{ref}</SelectItem>
+                                        <SelectItem key={ref} value={ref} className="text-foreground">{ref}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -537,11 +674,11 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <div className="p-4 border-t border-border/50 bg-muted/20 shrink-0">
+                  <div className="p-4 border-t border-border/50 bg-muted/30 shrink-0">
                     <Button
                       onClick={addTable}
                       disabled={!currentTable.name.trim() || currentTable.columns.length === 0}
-                      className="w-full gap-2"
+                      className="w-full gap-2 h-11 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 transition-all"
                     >
                       <Plus className="h-4 w-4" />
                       Add Table to Schema

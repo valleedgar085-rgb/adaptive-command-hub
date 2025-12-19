@@ -108,48 +108,48 @@ export const AIMessage = ({ content, isStreaming, onRunCode }: AIMessageProps) =
 
   return (
     <div className="flex gap-4 sm:gap-6 animate-fade-in">
-      {/* Avatar */}
+      {/* Avatar with enhanced glow */}
       <div className="flex-shrink-0 mt-1">
         <div 
           className={`
             w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center 
             transition-all duration-700 ease-out
             ${isStreaming || isTyping 
-              ? 'bg-gradient-to-br from-[hsl(217,91%,60%)] to-[hsl(217,91%,40%)] shadow-[0_0_30px_hsl(217,91%,60%,0.5)] scale-105' 
-              : 'bg-gradient-to-br from-[hsl(217,91%,50%)] to-[hsl(217,91%,35%)] shadow-lg'
+              ? 'bg-gradient-to-br from-primary to-primary/70 shadow-[0_0_40px_hsl(var(--primary)/0.5)] scale-105' 
+              : 'bg-gradient-to-br from-primary/90 to-primary/60 shadow-lg shadow-primary/20'
             }
           `}
         >
-          <Sparkles className={`h-6 w-6 sm:h-7 sm:w-7 text-white ${isStreaming ? 'animate-pulse' : ''}`} />
+          <Sparkles className={`h-6 w-6 sm:h-7 sm:w-7 text-primary-foreground ${isStreaming ? 'animate-pulse' : ''}`} />
         </div>
       </div>
 
-      {/* Message Content */}
+      {/* Message Content with improved contrast */}
       <div className="flex-1 max-w-[calc(100%-5rem)] sm:max-w-[85%]">
         <div
           className={`
             rounded-2xl overflow-hidden transition-all duration-700 ease-out
-            bg-card/95 backdrop-blur-sm border-2
+            bg-card border-2
             ${isStreaming || isTyping 
-              ? 'border-[hsl(217,91%,60%)]/50 shadow-[0_0_40px_hsl(217,91%,60%,0.15)]' 
-              : 'border-[hsl(217,91%,50%)]/30 shadow-lg'
+              ? 'border-primary/40 shadow-[0_0_50px_hsl(var(--primary)/0.15)]' 
+              : 'border-primary/20 shadow-xl shadow-black/5'
             }
           `}
         >
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-[hsl(217,91%,50%)]/20 bg-gradient-to-r from-[hsl(217,91%,60%)]/10 to-transparent">
+          {/* Header with better contrast */}
+          <div className="px-6 py-4 border-b border-primary/15 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div 
                   className={`
                     w-3 h-3 rounded-full transition-all duration-500
                     ${isStreaming || isTyping 
-                      ? 'bg-[hsl(217,91%,60%)] shadow-[0_0_10px_hsl(217,91%,60%,0.8)] animate-pulse' 
-                      : 'bg-[hsl(217,91%,50%)]'
+                      ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.8)] animate-pulse' 
+                      : 'bg-primary/70'
                     }
                   `} 
                 />
-                <span className="text-sm font-bold text-[hsl(217,91%,70%)] uppercase tracking-widest">
+                <span className="text-sm font-bold text-primary uppercase tracking-widest">
                   Elite AI
                 </span>
               </div>
@@ -160,7 +160,7 @@ export const AIMessage = ({ content, isStreaming, onRunCode }: AIMessageProps) =
                     variant="ghost"
                     size="sm"
                     onClick={skipToEnd}
-                    className="h-7 text-xs text-[hsl(217,91%,70%)] hover:text-[hsl(217,91%,80%)] hover:bg-[hsl(217,91%,60%)]/10"
+                    className="h-7 text-xs text-primary/70 hover:text-primary hover:bg-primary/10 transition-colors"
                   >
                     <SkipForward className="h-3.5 w-3.5 mr-1" />
                     Skip
@@ -171,18 +171,18 @@ export const AIMessage = ({ content, isStreaming, onRunCode }: AIMessageProps) =
                     variant="ghost"
                     size="sm"
                     onClick={handleCopy}
-                    className="h-7 text-xs text-muted-foreground hover:text-[hsl(217,91%,60%)]"
+                    className="h-7 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   >
-                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
                   </Button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Progress Bar - Only show when actively generating */}
+          {/* Progress Bar - Enhanced visibility */}
           {(isStreaming || isTyping) && (
-            <div className="px-6 py-4 border-b border-[hsl(217,91%,50%)]/10 bg-[hsl(217,91%,60%)]/5">
+            <div className="px-6 py-4 border-b border-primary/10 bg-primary/5">
               <AIProgressBar 
                 isActive={isStreaming || isTyping} 
                 stage={stage}
@@ -190,14 +190,13 @@ export const AIMessage = ({ content, isStreaming, onRunCode }: AIMessageProps) =
             </div>
           )}
 
-          {/* Message Body */}
-          <div className="p-6 sm:p-8 space-y-6">
+          {/* Message Body with better text contrast */}
+          <div className="p-6 sm:p-8 space-y-6 bg-gradient-to-b from-transparent to-background/30">
             {displayedContent ? (
               parts.map((part, i) => {
                 if (part.startsWith("```")) {
                   const language = extractLanguage(part);
                   const code = extractCode(part);
-                  // Only render complete code blocks
                   if (part.endsWith("```") && code) {
                     return (
                       <div key={i} className="my-5">
@@ -209,11 +208,10 @@ export const AIMessage = ({ content, isStreaming, onRunCode }: AIMessageProps) =
                       </div>
                     );
                   }
-                  // Render incomplete code block as text
                   return (
-                    <div key={i} className="my-4 p-4 rounded-lg bg-muted/30 border border-border/50 font-mono text-sm text-muted-foreground">
+                    <div key={i} className="my-4 p-4 rounded-lg bg-muted/50 border border-border font-mono text-sm text-foreground/80">
                       {part}
-                      {isTyping && <span className="inline-block w-2 h-4 ml-1 bg-[hsl(217,91%,60%)] animate-pulse" />}
+                      {isTyping && <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse rounded-sm" />}
                     </div>
                   );
                 }
@@ -221,11 +219,11 @@ export const AIMessage = ({ content, isStreaming, onRunCode }: AIMessageProps) =
                 return (
                   <p
                     key={i}
-                    className="text-[15px] sm:text-base leading-8 text-foreground/95 whitespace-pre-wrap break-words tracking-wide"
+                    className="text-[15px] sm:text-base leading-8 text-foreground whitespace-pre-wrap break-words tracking-wide"
                   >
                     {part}
                     {i === parts.length - 1 && isTyping && (
-                      <span className="inline-block w-2 h-5 ml-1 bg-[hsl(217,91%,60%)] animate-pulse rounded-sm" />
+                      <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse rounded-sm" />
                     )}
                   </p>
                 );
@@ -233,27 +231,27 @@ export const AIMessage = ({ content, isStreaming, onRunCode }: AIMessageProps) =
             ) : (
               <div className="flex items-center gap-3 text-muted-foreground">
                 <div className="flex gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-2 h-2 rounded-full bg-[hsl(217,91%,60%)] animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
-                <span className="text-sm">Thinking...</span>
+                <span className="text-sm font-medium">Thinking...</span>
               </div>
             )}
           </div>
 
-          {/* Footer - Only show when complete */}
+          {/* Footer with enhanced contrast */}
           {!isStreaming && !isTyping && content && (
-            <div className="px-6 py-4 border-t border-[hsl(217,91%,50%)]/20 bg-gradient-to-r from-[hsl(217,91%,60%)]/5 to-transparent flex items-center justify-between">
+            <div className="px-6 py-4 border-t border-primary/15 bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 text-xs text-muted-foreground hover:text-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,60%)]/10 transition-colors"
+                className="h-8 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
                 <Lightbulb className="h-3.5 w-3.5 mr-2" />
                 Helpful
               </Button>
-              <span className="text-xs text-muted-foreground/50">
+              <span className="text-xs text-muted-foreground/60 font-medium">
                 {content.length} characters
               </span>
             </div>
