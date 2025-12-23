@@ -49,6 +49,12 @@
     --sql-accent: 200 90% 55%;
     --sql-table: 263 60% 50%;
     --sql-column: 200 70% 60%;
+    --sql-bg: 240 25% 8%;
+    --sql-keyword: 263 85% 75%;
+    --sql-string: 142 70% 60%;
+    --sql-comment: 240 10% 45%;
+    --sql-function: 200 90% 70%;
+    --sql-number: 24 95% 65%;
 
     /* Enhanced Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(263 85% 65%), hsl(263 85% 55%));
@@ -172,6 +178,37 @@ pre[class*="language-"] {
 }
 .token.important, .token.bold { font-weight: bold; }
 .token.italic { font-style: italic; }
+
+/* SQL-specific Enhanced Highlighting */
+.sql-highlighted .token.keyword {
+  color: hsl(var(--sql-keyword));
+  font-weight: 600;
+}
+
+.sql-highlighted .token.string {
+  color: hsl(var(--sql-string));
+}
+
+.sql-highlighted .token.comment {
+  color: hsl(var(--sql-comment));
+  font-style: italic;
+}
+
+.sql-highlighted .token.function {
+  color: hsl(var(--sql-function));
+}
+
+.sql-highlighted .token.number {
+  color: hsl(var(--sql-number));
+}
+
+.sql-highlighted .token.operator {
+  color: hsl(240 10% 75%);
+}
+
+.sql-highlighted .token.punctuation {
+  color: hsl(240 10% 60%);
+}
 
 /* Enhanced Animations */
 @keyframes fade-in {
