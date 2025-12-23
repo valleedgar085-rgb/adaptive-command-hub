@@ -25,6 +25,7 @@ import { SchemaRelationshipDiagram } from "./SchemaRelationshipDiagram";
 import { SQLKeyboardShortcutsPanel } from "./SQLKeyboardShortcutsPanel";
 import { SQLValidationPanel } from "./SQLValidationPanel";
 import { SQLTypeScriptGenerator } from "./SQLTypeScriptGenerator";
+import { SQLCodeViewer } from "./SQLCodeViewer";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Type Definitions
@@ -1206,47 +1207,7 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
 
               {/* SQL Tab */}
               <TabsContent value="sql" className="flex-1 min-h-0 m-0 p-5 pt-4">
-                <div className="h-full flex flex-col border-2 border-border/50 rounded-xl overflow-hidden bg-card/50 shadow-xl">
-                  <div className="flex items-center justify-between p-4 border-b border-border/50 bg-gradient-to-r from-muted/50 to-transparent shrink-0">
-                    <div className="flex items-center gap-3">
-                      <Label className="font-bold">Generated SQL</Label>
-                      {generatedSQL && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 text-xs font-medium">Ready</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => downloadSQL("sql")} disabled={!generatedSQL} className="h-9 gap-2">
-                        <FileCode className="h-4 w-4" />
-                        .sql
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => downloadSQL("json")} disabled={!generatedSQL} className="h-9 gap-2">
-                        <FileText className="h-4 w-4" />
-                        .json
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={copySQL} disabled={!generatedSQL} className="h-9 gap-2">
-                        {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                        {copied ? "Copied!" : "Copy"}
-                      </Button>
-                    </div>
-                  </div>
-                  <ScrollArea className="flex-1 bg-[#0d1117]">
-                    {generatedSQL ? (
-                      <pre className="p-6 text-sm font-mono leading-relaxed whitespace-pre text-[#c9d1d9] selection:bg-primary/30">
-                        {generatedSQL}
-                      </pre>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full py-16">
-                        <Code className="h-16 w-16 mb-4 text-muted-foreground/20" />
-                        <p className="text-muted-foreground font-medium">No SQL generated yet</p>
-                        <p className="text-sm text-muted-foreground/70 mt-1">Add tables and click "Generate SQL"</p>
-                        <Button onClick={() => setActiveTab("builder")} variant="outline" className="mt-4 gap-2">
-                          <Table2 className="h-4 w-4" />
-                          Go to Builder
-                        </Button>
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
+                <SQLCodeViewer sql={generatedSQL} />
               </TabsContent>
 
               {/* TypeScript Tab */}
