@@ -5,7 +5,7 @@ import {
   FileText, FileCode, Columns, GitBranch, Code, Sparkles, Zap,
   Users, ShoppingCart, FileStack, Calendar, MessageSquare, Settings,
   Keyboard, RotateCcw, Wand2, Shield, HelpCircle, Search, ArrowUp,
-  ArrowDown, Command, Layers, Package, RefreshCw
+  ArrowDown, Command, Layers, Package, RefreshCw, Braces
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -24,6 +24,7 @@ import { useSQLBuilderKeyboard } from "@/hooks/useSQLBuilderKeyboard";
 import { SchemaRelationshipDiagram } from "./SchemaRelationshipDiagram";
 import { SQLKeyboardShortcutsPanel } from "./SQLKeyboardShortcutsPanel";
 import { SQLValidationPanel } from "./SQLValidationPanel";
+import { SQLTypeScriptGenerator } from "./SQLTypeScriptGenerator";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Type Definitions
@@ -293,7 +294,8 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     { key: "1", ctrl: true, description: "Builder tab", action: () => setActiveTab("builder") },
     { key: "2", ctrl: true, description: "Diagram tab", action: () => setActiveTab("diagram") },
     { key: "3", ctrl: true, description: "SQL tab", action: () => setActiveTab("sql") },
-    { key: "4", ctrl: true, description: "Validation tab", action: () => setActiveTab("validation") },
+    { key: "4", ctrl: true, description: "TypeScript tab", action: () => setActiveTab("typescript") },
+    { key: "5", ctrl: true, description: "Validation tab", action: () => setActiveTab("validation") },
     { key: "/", ctrl: true, description: "Show shortcuts", action: () => setShowShortcutsDialog(true) },
     { key: "Enter", ctrl: true, description: "Add table", action: () => currentTable.name && currentTable.columns.length > 0 && addTable() },
     { key: "ArrowUp", alt: true, description: "Previous column", action: () => navigateColumn(-1) },
@@ -881,6 +883,11 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                     <span className="hidden sm:inline">SQL</span>
                     {generatedSQL && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
                   </TabsTrigger>
+                  <TabsTrigger value="typescript" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
+                    <Braces className="h-4 w-4" />
+                    <span className="hidden sm:inline">TypeScript</span>
+                    {tables.length > 0 && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                  </TabsTrigger>
                   <TabsTrigger value="validation" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
                     <Shield className="h-4 w-4" />
                     <span className="hidden sm:inline">Validate</span>
@@ -1240,6 +1247,11 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                     )}
                   </ScrollArea>
                 </div>
+              </TabsContent>
+
+              {/* TypeScript Tab */}
+              <TabsContent value="typescript" className="flex-1 min-h-0 m-0 p-5 pt-4">
+                <SQLTypeScriptGenerator tables={tables} schemaName={schemaName} />
               </TabsContent>
 
               {/* Validation Tab */}
