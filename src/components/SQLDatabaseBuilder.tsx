@@ -27,6 +27,7 @@ import { SQLValidationPanel } from "./SQLValidationPanel";
 import { SQLTypeScriptGenerator } from "./SQLTypeScriptGenerator";
 import { SQLCodeViewer } from "./SQLCodeViewer";
 import { AISchemaGenerator } from "./AISchemaGenerator";
+import { AISchemaOptimizer } from "./AISchemaOptimizer";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Type Definitions
@@ -299,6 +300,7 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     { key: "4", ctrl: true, description: "SQL tab", action: () => setActiveTab("sql") },
     { key: "5", ctrl: true, description: "TypeScript tab", action: () => setActiveTab("typescript") },
     { key: "6", ctrl: true, description: "Validation tab", action: () => setActiveTab("validation") },
+    { key: "7", ctrl: true, description: "Optimizer tab", action: () => setActiveTab("optimizer") },
     { key: "/", ctrl: true, description: "Show shortcuts", action: () => setShowShortcutsDialog(true) },
     { key: "Enter", ctrl: true, description: "Add table", action: () => currentTable.name && currentTable.columns.length > 0 && addTable() },
     { key: "ArrowUp", alt: true, description: "Previous column", action: () => navigateColumn(-1) },
@@ -900,6 +902,10 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                     <Shield className="h-4 w-4" />
                     <span className="hidden sm:inline">Validate</span>
                   </TabsTrigger>
+                  <TabsTrigger value="optimizer" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/20 data-[state=active]:to-orange-500/20">
+                    <Zap className="h-4 w-4" />
+                    <span className="hidden sm:inline">Optimize</span>
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -1244,6 +1250,13 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
               <TabsContent value="validation" className="flex-1 min-h-0 m-0 p-5 pt-4">
                 <div className="h-full border-2 border-border/50 rounded-xl overflow-hidden bg-card/50 shadow-xl">
                   <SQLValidationPanel tables={tables} />
+                </div>
+              </TabsContent>
+
+              {/* Optimizer Tab */}
+              <TabsContent value="optimizer" className="flex-1 min-h-0 m-0 p-5 pt-4">
+                <div className="h-full border-2 border-border/50 rounded-xl overflow-hidden bg-card/50 shadow-xl p-6">
+                  <AISchemaOptimizer tables={tables} />
                 </div>
               </TabsContent>
             </Tabs>
