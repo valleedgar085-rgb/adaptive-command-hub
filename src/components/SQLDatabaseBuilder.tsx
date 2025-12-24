@@ -5,7 +5,7 @@ import {
   FileText, FileCode, Columns, GitBranch, Code, Sparkles, Zap,
   Users, ShoppingCart, FileStack, Calendar, MessageSquare, Settings,
   Keyboard, RotateCcw, Wand2, Shield, HelpCircle, Search, ArrowUp,
-  ArrowDown, Command, Layers, Package, RefreshCw, Braces
+  ArrowDown, Command, Layers, Package, RefreshCw, Braces, Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -26,6 +26,7 @@ import { SQLKeyboardShortcutsPanel } from "./SQLKeyboardShortcutsPanel";
 import { SQLValidationPanel } from "./SQLValidationPanel";
 import { SQLTypeScriptGenerator } from "./SQLTypeScriptGenerator";
 import { SQLCodeViewer } from "./SQLCodeViewer";
+import { AISchemaGenerator } from "./AISchemaGenerator";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Type Definitions
@@ -293,10 +294,11 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     { key: "i", ctrl: true, description: "Import SQL", action: () => setShowImportDialog(true) },
     { key: "z", ctrl: true, description: "Undo", action: handleUndo },
     { key: "1", ctrl: true, description: "Builder tab", action: () => setActiveTab("builder") },
-    { key: "2", ctrl: true, description: "Diagram tab", action: () => setActiveTab("diagram") },
-    { key: "3", ctrl: true, description: "SQL tab", action: () => setActiveTab("sql") },
-    { key: "4", ctrl: true, description: "TypeScript tab", action: () => setActiveTab("typescript") },
-    { key: "5", ctrl: true, description: "Validation tab", action: () => setActiveTab("validation") },
+    { key: "2", ctrl: true, description: "AI tab", action: () => setActiveTab("ai") },
+    { key: "3", ctrl: true, description: "Diagram tab", action: () => setActiveTab("diagram") },
+    { key: "4", ctrl: true, description: "SQL tab", action: () => setActiveTab("sql") },
+    { key: "5", ctrl: true, description: "TypeScript tab", action: () => setActiveTab("typescript") },
+    { key: "6", ctrl: true, description: "Validation tab", action: () => setActiveTab("validation") },
     { key: "/", ctrl: true, description: "Show shortcuts", action: () => setShowShortcutsDialog(true) },
     { key: "Enter", ctrl: true, description: "Add table", action: () => currentTable.name && currentTable.columns.length > 0 && addTable() },
     { key: "ArrowUp", alt: true, description: "Previous column", action: () => navigateColumn(-1) },
@@ -875,6 +877,11 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                     <Table2 className="h-4 w-4" />
                     <span className="hidden sm:inline">Builder</span>
                   </TabsTrigger>
+                  <TabsTrigger value="ai" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-pink-500/20">
+                    <Bot className="h-4 w-4" />
+                    <span className="hidden sm:inline">AI Generate</span>
+                    <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
+                  </TabsTrigger>
                   <TabsTrigger value="diagram" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
                     <GitBranch className="h-4 w-4" />
                     <span className="hidden sm:inline">Diagram</span>
@@ -1195,6 +1202,24 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                       </div>
                     </ScrollArea>
                   </div>
+                </div>
+              </TabsContent>
+
+              {/* AI Tab */}
+              <TabsContent value="ai" className="flex-1 min-h-0 m-0 p-5 pt-4">
+                <div className="h-full border-2 border-border/50 rounded-xl overflow-hidden bg-card/50 shadow-xl p-6">
+                  <AISchemaGenerator 
+                    existingTables={tables} 
+                    onSchemaGenerated={(newTables) => {
+                      saveToUndoStack();
+                      setTables(prev => [...prev, ...newTables]);
+                      setExpandedTables(prev => {
+                        const next = new Set(prev);
+                        newTables.forEach((_, i) => next.add(tables.length + i));
+                        return next;
+                      });
+                    }} 
+                  />
                 </div>
               </TabsContent>
 
