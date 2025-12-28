@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone, FileCode, Database } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone, FileCode, Database, BookMarked } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +15,8 @@ import { APKBuildDialog } from "@/components/APKBuildDialog";
 import { ScriptBuilder } from "@/components/ScriptBuilder";
 import { SQLDatabaseBuilder } from "@/components/SQLDatabaseBuilder";
 import { BuildStatusPanel } from "@/components/BuildStatusPanel";
+import { IntegratedTerminal } from "@/components/IntegratedTerminal";
+import { PWADocumentation } from "@/components/PWADocumentation";
 import { Link } from "react-router-dom";
 import { useExportChat } from "@/hooks/useExportChat";
 import { useAPKBuilder } from "@/hooks/useAPKBuilder";
@@ -48,6 +50,8 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   const [showAPKDialog, setShowAPKDialog] = useState(false);
   const [showScriptBuilder, setShowScriptBuilder] = useState(false);
   const [showSQLBuilder, setShowSQLBuilder] = useState(false);
+  const [showPWADocs, setShowPWADocs] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const [isBuilding, setIsBuilding] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -355,7 +359,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         </div>
 
         {/* Message Content */}
-        <div className="flex-1 max-w-[calc(100%-5rem)] sm:max-w-[85%] ml-4">
+        <div className="flex-1 max-w-full sm:max-w-[calc(100%-5rem)] ml-0 sm:ml-4">
           <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20">
             <div className="p-5 sm:p-6">
               <p className="text-[15px] sm:text-base leading-7 whitespace-pre-wrap break-words">
@@ -374,7 +378,7 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* APK Build Dialog */}
       <APKBuildDialog
         open={showAPKDialog}
