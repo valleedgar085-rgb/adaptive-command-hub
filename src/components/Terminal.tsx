@@ -415,11 +415,12 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
 
       {/* Integrated Terminal Panel */}
       {terminalOpen && (
-        <div className="fixed bottom-0 left-0 right-0 h-80 bg-background border-t-2 border-primary/30 shadow-2xl z-50 animate-slide-up">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/95">
+        <div className="fixed bottom-0 left-0 right-0 h-72 bg-background border-t-2 border-emerald-500/30 shadow-2xl z-40 animate-slide-up flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/95 flex-shrink-0">
             <div className="flex items-center gap-2">
-              <TerminalSquare className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Integrated Terminal</span>
+              <TerminalSquare className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm font-semibold text-foreground">Integrated Terminal 2.0</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">READY</span>
             </div>
             <Button
               variant="ghost"
@@ -430,11 +431,13 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <IntegratedTerminal
-            onCommandOutput={(output) => {
-              setInput(prev => prev + (prev ? '\n\n' : '') + `Terminal Output:\n\`\`\`\n${output}\n\`\`\``);
-            }}
-          />
+          <div className="flex-1 overflow-hidden">
+            <IntegratedTerminal
+              onCommandOutput={(output) => {
+                setInput(prev => prev + (prev ? '\n\n' : '') + `Terminal Output:\n\`\`\`\n${output}\n\`\`\``);
+              }}
+            />
+          </div>
         </div>
       )}
 
@@ -645,10 +648,10 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
             )}
           </div>
 
-          {/* Enhanced Input with better visual feedback */}
-          <div className="relative flex items-end gap-3">
-            {/* Tool Buttons with improved contrast */}
-            <div className="flex gap-2">
+          {/* Enhanced Input Area */}
+          <div className="space-y-2">
+            {/* Tool Buttons Row - Scrollable on mobile */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
               <Button
                 variant="outline"
                 size="icon"
@@ -656,90 +659,90 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                   const file = await fileSystem.readFile();
                   if (file) handleFileRead(file);
                 }}
-                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-emerald-500/15 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
-                title="Open file from computer"
+                className="h-10 w-10 flex-shrink-0 rounded-lg bg-muted/50 border border-border/50 hover:bg-emerald-500/15 hover:border-emerald-500/50 transition-all group"
+                title="Open file"
               >
-                <FolderOpen className="h-5 w-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+                <FolderOpen className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setShowAPKDialog(true)}
-                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-green-500/15 hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
-                title="Build Android APK"
+                className="h-10 w-10 flex-shrink-0 rounded-lg bg-muted/50 border border-border/50 hover:bg-green-500/15 hover:border-green-500/50 transition-all group"
+                title="Build APK"
               >
-                <Smartphone className="h-5 w-5 text-muted-foreground group-hover:text-green-500 transition-colors" />
+                <Smartphone className="h-4 w-4 text-muted-foreground group-hover:text-green-500" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setShowScriptBuilder(true)}
-                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-amber-500/15 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
-                title="Script Builder"
+                className="h-10 w-10 flex-shrink-0 rounded-lg bg-muted/50 border border-border/50 hover:bg-amber-500/15 hover:border-amber-500/50 transition-all group"
+                title="Scripts"
               >
-                <FileCode className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                <FileCode className="h-4 w-4 text-muted-foreground group-hover:text-amber-500" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setShowSQLBuilder(true)}
-                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-blue-500/15 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
-                title="SQL Database Builder"
+                className="h-10 w-10 flex-shrink-0 rounded-lg bg-muted/50 border border-border/50 hover:bg-blue-500/15 hover:border-blue-500/50 transition-all group"
+                title="SQL Builder"
               >
-                <Database className="h-5 w-5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                <Database className="h-4 w-4 text-muted-foreground group-hover:text-blue-500" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setShowPWADocs(true)}
-                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-purple-500/15 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
-                title="PWA Documentation"
+                className="h-10 w-10 flex-shrink-0 rounded-lg bg-muted/50 border border-border/50 hover:bg-purple-500/15 hover:border-purple-500/50 transition-all group"
+                title="PWA Docs"
               >
-                <BookMarked className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+                <BookMarked className="h-4 w-4 text-muted-foreground group-hover:text-purple-500" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setTerminalOpen(!terminalOpen)}
-                className={`h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-cyan-500/15 hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-0.5 group ${terminalOpen ? 'bg-cyan-500/20 border-cyan-500/50' : ''}`}
+                className={`h-10 w-10 flex-shrink-0 rounded-lg bg-muted/50 border border-border/50 hover:bg-cyan-500/15 hover:border-cyan-500/50 transition-all group ${terminalOpen ? 'bg-cyan-500/20 border-cyan-500/50' : ''}`}
                 title="Terminal"
               >
-                <TerminalSquare className="h-5 w-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
+                <TerminalSquare className="h-4 w-4 text-muted-foreground group-hover:text-cyan-500" />
               </Button>
             </div>
             
-            {/* Main Input with enhanced focus states */}
-            <div className="flex-1 relative group">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500 -z-10" />
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask me anything about code..."
-                className="min-h-[52px] max-h-40 pr-4 resize-none bg-background/90 border-2 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 rounded-xl shadow-inner transition-all duration-300 text-foreground placeholder:text-muted-foreground/60"
-                disabled={isLoading}
-              />
+            {/* Main Input Row */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1 relative group">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask me anything about code..."
+                  className="min-h-[48px] max-h-32 resize-none bg-background/90 border border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 rounded-lg transition-all text-foreground placeholder:text-muted-foreground/60 text-sm"
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <Button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                size="icon"
+                className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
             </div>
-            
-            {/* Send Button with enhanced animation */}
-            <Button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 hover:from-primary/90 hover:via-primary/80 hover:to-primary/70 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
           </div>
           
           {/* Keyboard hint */}
-          <div className="flex justify-center">
-            <p className="text-[10px] text-muted-foreground/50">
-              Press <kbd className="px-1.5 py-0.5 rounded bg-muted/50 text-[9px] font-mono mx-0.5">Enter</kbd> to send • <kbd className="px-1.5 py-0.5 rounded bg-muted/50 text-[9px] font-mono mx-0.5">Shift+Enter</kbd> for new line
+          <div className="flex justify-center pt-1">
+            <p className="text-[10px] text-muted-foreground/40">
+              <kbd className="px-1 py-0.5 rounded bg-muted/30 text-[9px] font-mono">Enter</kbd> send • <kbd className="px-1 py-0.5 rounded bg-muted/30 text-[9px] font-mono">Shift+Enter</kbd> new line
             </p>
           </div>
         </div>
