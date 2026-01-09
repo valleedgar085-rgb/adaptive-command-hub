@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone, FileCode, Database, BookMarked } from "lucide-react";
+import { Send, Loader2, Code, Lightbulb, Copy, Check, AlertCircle, Play, BookOpen, Sparkles, Download, FileText, File, FileType, FolderOpen, Smartphone, FileCode, Database, BookMarked, TerminalSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -407,6 +407,37 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
         }}
       />
 
+      {/* PWA Documentation Dialog */}
+      <PWADocumentation
+        open={showPWADocs}
+        onOpenChange={setShowPWADocs}
+      />
+
+      {/* Integrated Terminal Panel */}
+      {terminalOpen && (
+        <div className="fixed bottom-0 left-0 right-0 h-80 bg-background border-t-2 border-primary/30 shadow-2xl z-50 animate-slide-up">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/95">
+            <div className="flex items-center gap-2">
+              <TerminalSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Integrated Terminal</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTerminalOpen(false)}
+              className="h-7 w-7 hover:bg-destructive/20 hover:text-destructive"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <IntegratedTerminal
+            onCommandOutput={(output) => {
+              setInput(prev => prev + (prev ? '\n\n' : '') + `Terminal Output:\n\`\`\`\n${output}\n\`\`\``);
+            }}
+          />
+        </div>
+      )}
+
       {/* Permission Dialog for File System */}
       <PermissionDialog
         open={!!fileSystem.pendingPermission}
@@ -656,6 +687,24 @@ export const Terminal = ({ conversationId, onConversationCreate }: TerminalProps
                 title="SQL Database Builder"
               >
                 <Database className="h-5 w-5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowPWADocs(true)}
+                className="h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-purple-500/15 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 hover:-translate-y-0.5 group"
+                title="PWA Documentation"
+              >
+                <BookMarked className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setTerminalOpen(!terminalOpen)}
+                className={`h-12 w-12 rounded-xl bg-muted/50 border-2 border-border/50 hover:bg-cyan-500/15 hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-0.5 group ${terminalOpen ? 'bg-cyan-500/20 border-cyan-500/50' : ''}`}
+                title="Terminal"
+              >
+                <TerminalSquare className="h-5 w-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
               </Button>
             </div>
             

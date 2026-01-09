@@ -31,15 +31,17 @@ interface CommandOutput {
 }
 
 interface IntegratedTerminalProps {
-  isOpen: boolean;
-  onToggle: () => void;
+  isOpen?: boolean;
+  onToggle?: () => void;
   onExecuteScript?: (command: string) => Promise<string>;
+  onCommandOutput?: (output: string) => void;
 }
 
 export const IntegratedTerminal = ({ 
-  isOpen, 
+  isOpen = true, 
   onToggle,
-  onExecuteScript 
+  onExecuteScript,
+  onCommandOutput
 }: IntegratedTerminalProps) => {
   const [history, setHistory] = useState<CommandOutput[]>([]);
   const [currentCommand, setCurrentCommand] = useState("");
@@ -266,6 +268,11 @@ Type 'help' for available commands.`;
 
       const duration = Date.now() - startTime;
 
+      // Notify parent of command output
+      if (onCommandOutput && output) {
+        onCommandOutput(output);
+      }
+
       setHistory(prev => prev.map(h => 
         h.id === commandId 
           ? { ...h, output, status, duration }
@@ -286,7 +293,7 @@ Type 'help' for available commands.`;
     } finally {
       setIsExecuting(false);
     }
-  }, [onExecuteScript, history]);
+  }, [onExecuteScript, history, onCommandOutput]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !isExecuting) {
@@ -343,52 +350,54 @@ Type 'help' for available commands.`;
   return (
     <div 
       className={cn(
-        "border-t border-border bg-card/95 backdrop-blur-xl transition-all duration-300",
-        isOpen ? "h-64 md:h-80" : "h-10"
+        "bg-card/95 backdrop-blur-xl transition-all duration-300 h-full flex flex-col",
+        !isOpen && onToggle ? "h-10" : ""
       )}
     >
-      {/* Terminal Header */}
-      <button
-        onClick={onToggle}
-        className="w-full h-10 px-4 flex items-center justify-between bg-gradient-to-r from-muted/50 to-transparent hover:bg-muted/30 transition-colors border-b border-border/50"
-      >
-        <div className="flex items-center gap-2">
-          <TerminalIcon className="h-4 w-4 text-emerald-500" />
-          <span className="text-sm font-semibold text-foreground">Terminal</span>
-          <Badge variant="outline" className="h-5 text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
-            2.0
-          </Badge>
-          {history.some(h => h.status === "running") && (
-            <Badge variant="outline" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/30 animate-pulse">
-              Running...
+      {/* Terminal Header - only show if toggle function provided */}
+      {onToggle && (
+        <button
+          onClick={onToggle}
+          className="w-full h-10 px-4 flex items-center justify-between bg-gradient-to-r from-muted/50 to-transparent hover:bg-muted/30 transition-colors border-b border-border/50 flex-shrink-0"
+        >
+          <div className="flex items-center gap-2">
+            <TerminalIcon className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-foreground">Terminal</span>
+            <Badge variant="outline" className="h-5 text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
+              2.0
             </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {history.length > 0 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={(e) => {
-                e.stopPropagation();
-                setHistory([]);
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-            </Button>
-          )}
-          {isOpen ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
-      </button>
+            {history.some(h => h.status === "running") && (
+              <Badge variant="outline" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/30 animate-pulse">
+                Running...
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {history.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHistory([]);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            )}
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </button>
+      )}
 
       {/* Terminal Body */}
       {isOpen && (
-        <div className="flex flex-col h-[calc(100%-2.5rem)]">
+        <div className="flex flex-col flex-1 overflow-hidden">
           {/* Output Area */}
           <ScrollArea className="flex-1 p-3" ref={scrollRef}>
             <div className="space-y-3 font-mono text-sm">
