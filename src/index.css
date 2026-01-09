@@ -307,3 +307,12 @@ pre[class*="language-"] {
 .transition-smooth {
   @apply transition-all duration-200 ease-out;
 }
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

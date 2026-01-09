@@ -809,129 +809,105 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
     <TooltipProvider>
       <>
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="w-[98vw] max-w-7xl h-[95vh] max-h-[95vh] p-0 flex flex-col overflow-hidden border-2 border-border/50 bg-gradient-to-b from-card to-background shadow-2xl">
+          <DialogContent className="w-[98vw] max-w-6xl h-[90vh] max-h-[90vh] p-0 flex flex-col overflow-hidden border border-border/50 bg-gradient-to-b from-card to-background shadow-2xl">
             {/* Enhanced Header */}
-            <DialogHeader className="p-5 border-b border-border/50 bg-gradient-to-r from-primary/10 via-transparent to-sql-accent/10 shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-sql-accent flex items-center justify-center shadow-xl shadow-primary/30 animate-pulse-glow">
-                    <Database className="h-7 w-7 text-white" />
+            <DialogHeader className="p-4 border-b border-border/50 bg-gradient-to-r from-blue-500/10 via-transparent to-purple-500/10 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <Database className="h-5 w-5 text-white" />
                   </div>
-                  <div>
-                    <DialogTitle className="text-xl font-bold flex items-center gap-3">
-                      SQL Database Builder
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">Pro</span>
-                      {schemaName && (
-                        <span className="text-sm font-normal text-muted-foreground">— {schemaName}</span>
-                      )}
+                  <div className="min-w-0">
+                    <DialogTitle className="text-lg font-bold flex items-center gap-2 truncate">
+                      SQL Builder
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">Pro</span>
                     </DialogTitle>
-                    <DialogDescription className="text-muted-foreground text-sm flex items-center gap-4">
-                      <span>Professional database schema generator</span>
-                      <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-muted/50 border border-border/50 rounded text-[10px] font-mono">
-                        <Command className="h-2.5 w-2.5" /> / for shortcuts
-                      </kbd>
+                    <DialogDescription className="text-xs text-muted-foreground truncate">
+                      {schemaName || "Build your database schema"}
                     </DialogDescription>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={() => setShowShortcutsDialog(true)} className="h-9 w-9">
-                        <Keyboard className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Keyboard Shortcuts</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={handleUndo} disabled={undoStack.length === 0} className="h-9 w-9">
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
-                  </Tooltip>
-                  <div className="w-px h-6 bg-border/50" />
-                  <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="h-9 gap-2">
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden sm:inline">Import</span>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => setShowShortcutsDialog(true)} className="h-8 w-8">
+                    <Keyboard className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setShowLoadDialog(true)} className="h-9 gap-2">
-                    <FolderOpen className="h-4 w-4" />
-                    <span className="hidden sm:inline">Load</span>
+                  <Button variant="ghost" size="icon" onClick={handleUndo} disabled={undoStack.length === 0} className="h-8 w-8">
+                    <RotateCcw className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)} disabled={tables.length === 0} className="h-9 gap-2">
-                    <Save className="h-4 w-4" />
-                    <span className="hidden sm:inline">Save</span>
+                  <div className="w-px h-5 bg-border/50 mx-1" />
+                  <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} className="h-8 px-2 text-xs">
+                    <Upload className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={handleNewSchema} className="h-9 gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    <span className="hidden sm:inline">New</span>
+                  <Button variant="outline" size="sm" onClick={() => setShowLoadDialog(true)} className="h-8 px-2 text-xs">
+                    <FolderOpen className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)} disabled={tables.length === 0} className="h-8 px-2 text-xs">
+                    <Save className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
             </DialogHeader>
 
-            {/* Tabs with enhanced styling */}
+            {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <div className="px-5 pt-4 shrink-0">
-                <TabsList className="w-full sm:w-fit bg-muted/50 p-1 gap-1">
-                  <TabsTrigger value="builder" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
-                    <Table2 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Builder</span>
+              <div className="px-4 pt-3 shrink-0 overflow-x-auto scrollbar-hide">
+                <TabsList className="w-max sm:w-fit bg-muted/50 p-0.5 gap-0.5 h-9">
+                  <TabsTrigger value="builder" className="h-8 px-3 gap-1.5 text-xs data-[state=active]:bg-card">
+                    <Table2 className="h-3.5 w-3.5" />
+                    Builder
                   </TabsTrigger>
-                  <TabsTrigger value="ai" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-pink-500/20">
-                    <Bot className="h-4 w-4" />
-                    <span className="hidden sm:inline">AI Generate</span>
-                    <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
+                  <TabsTrigger value="ai" className="h-8 px-3 gap-1.5 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-pink-500/20">
+                    <Bot className="h-3.5 w-3.5" />
+                    AI
+                    <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
                   </TabsTrigger>
-                  <TabsTrigger value="diagram" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
-                    <GitBranch className="h-4 w-4" />
-                    <span className="hidden sm:inline">Diagram</span>
+                  <TabsTrigger value="diagram" className="h-8 px-3 gap-1.5 text-xs data-[state=active]:bg-card">
+                    <GitBranch className="h-3.5 w-3.5" />
+                    Diagram
                   </TabsTrigger>
-                  <TabsTrigger value="sql" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
-                    <Code className="h-4 w-4" />
-                    <span className="hidden sm:inline">SQL</span>
-                    {generatedSQL && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                  <TabsTrigger value="sql" className="h-8 px-3 gap-1.5 text-xs data-[state=active]:bg-card">
+                    <Code className="h-3.5 w-3.5" />
+                    SQL
+                    {generatedSQL && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
                   </TabsTrigger>
-                  <TabsTrigger value="typescript" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
-                    <Braces className="h-4 w-4" />
-                    <span className="hidden sm:inline">TypeScript</span>
-                    {tables.length > 0 && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                  <TabsTrigger value="typescript" className="h-8 px-3 gap-1.5 text-xs data-[state=active]:bg-card">
+                    <Braces className="h-3.5 w-3.5" />
+                    TS
                   </TabsTrigger>
-                  <TabsTrigger value="validation" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md">
-                    <Shield className="h-4 w-4" />
-                    <span className="hidden sm:inline">Validate</span>
+                  <TabsTrigger value="validation" className="h-8 px-3 gap-1.5 text-xs data-[state=active]:bg-card">
+                    <Shield className="h-3.5 w-3.5" />
+                    Validate
                   </TabsTrigger>
-                  <TabsTrigger value="optimizer" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/20 data-[state=active]:to-orange-500/20">
-                    <Zap className="h-4 w-4" />
-                    <span className="hidden sm:inline">Optimize</span>
+                  <TabsTrigger value="optimizer" className="h-8 px-3 gap-1.5 text-xs data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/20 data-[state=active]:to-orange-500/20">
+                    <Zap className="h-3.5 w-3.5" />
+                    Optimize
                   </TabsTrigger>
                 </TabsList>
               </div>
 
               {/* Builder Tab */}
-              <TabsContent value="builder" className="flex-1 min-h-0 m-0 p-5 pt-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full">
+              <TabsContent value="builder" className="flex-1 min-h-0 m-0 p-4 pt-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
                   {/* Left Panel */}
-                  <div className="border-2 border-border/50 rounded-xl flex flex-col overflow-hidden bg-card/80 shadow-xl">
+                  <div className="border border-border/50 rounded-lg flex flex-col overflow-hidden bg-card/80">
                     {/* Quick Templates */}
-                    <div className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="p-3 border-b border-border/50 bg-gradient-to-r from-blue-500/10 to-transparent">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-primary animate-pulse" />
-                          <Label className="font-bold text-foreground">Quick Templates</Label>
+                          <Zap className="h-3.5 w-3.5 text-blue-500" />
+                          <Label className="font-semibold text-sm text-foreground">Templates</Label>
                         </div>
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                           <Input
                             placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="h-8 w-32 pl-8 text-xs bg-background/50 border-border/50"
+                            className="h-7 w-28 pl-7 text-xs bg-background/50 border-border/50"
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-4 gap-1.5">
                         {filteredTemplates.map(([key, template]) => {
                           const IconComponent = template.icon;
                           return (
@@ -941,16 +917,15 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                                   variant="outline"
                                   size="sm"
                                   onClick={() => addQuickTemplate(key as keyof typeof QUICK_TEMPLATES)}
-                                  className={`h-auto py-2.5 px-2 flex flex-col items-center gap-1.5 bg-background/50 border-border/50 hover:bg-primary/10 hover:border-primary/40 transition-all duration-300 group`}
+                                  className="h-auto py-2 px-1.5 flex flex-col items-center gap-1 bg-background/50 border-border/50 hover:bg-blue-500/10 hover:border-blue-500/40 transition-all group"
                                 >
-                                  <IconComponent className={`h-4 w-4 ${template.color} group-hover:scale-110 transition-transform`} />
-                                  <span className="text-[10px] font-medium capitalize truncate w-full text-center">{template.name}</span>
+                                  <IconComponent className={`h-3.5 w-3.5 ${template.color} group-hover:scale-110 transition-transform`} />
+                                  <span className="text-[9px] font-medium capitalize truncate w-full text-center">{template.name}</span>
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent side="bottom">
+                              <TooltipContent side="bottom" className="text-xs">
                                 <p className="font-medium">{template.name}</p>
-                                <p className="text-xs text-muted-foreground">{template.description}</p>
-                                <p className="text-xs text-muted-foreground">{template.columns.length} columns</p>
+                                <p className="text-muted-foreground">{template.columns.length} columns</p>
                               </TooltipContent>
                             </Tooltip>
                           );
@@ -959,15 +934,15 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                     </div>
 
                     {/* Custom Table Creation */}
-                    <div className="p-4 border-b border-border/50 bg-muted/30">
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="p-3 border-b border-border/50 bg-muted/20">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          <Label className="font-semibold text-foreground">Custom Table</Label>
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                          <Label className="font-semibold text-sm text-foreground">Custom Table</Label>
                         </div>
-                        <Button onClick={addStandardColumns} variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
+                        <Button onClick={addStandardColumns} variant="ghost" size="sm" className="h-6 text-[10px] gap-1 px-2">
                           <Wand2 className="h-3 w-3" />
-                          Add Standard Cols
+                          Standard Cols
                         </Button>
                       </div>
                       <div className="flex gap-2">
@@ -976,10 +951,10 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
                           placeholder="table_name"
                           value={currentTable.name}
                           onChange={(e) => setCurrentTable(prev => ({ ...prev, name: e.target.value.toLowerCase().replace(/\s/g, "_") }))}
-                          className="flex-1 h-11 bg-background/80 border-2 border-border/50 focus:border-primary/50 text-foreground font-mono placeholder:text-muted-foreground/60"
+                          className="flex-1 h-9 bg-background/80 border border-border/50 focus:border-primary/50 text-foreground font-mono text-sm"
                         />
-                        <Button onClick={addColumn} variant="outline" className="h-11 gap-2 px-4">
-                          <Plus className="h-4 w-4" />
+                        <Button onClick={addColumn} variant="outline" className="h-9 gap-1.5 px-3 text-xs">
+                          <Plus className="h-3.5 w-3.5" />
                           Column
                         </Button>
                       </div>
@@ -987,15 +962,15 @@ export const SQLDatabaseBuilder = ({ open, onOpenChange, onGenerateSQL }: SQLDat
 
                     {/* Columns Editor */}
                     <Collapsible open={columnsExpanded} onOpenChange={setColumnsExpanded} className="flex-1 flex flex-col min-h-0">
-                      <CollapsibleTrigger className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border/30 hover:bg-muted/40 transition-colors shrink-0">
-                        <span className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Columns className="h-4 w-4 text-primary" />
+                      <CollapsibleTrigger className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border/30 hover:bg-muted/40 transition-colors shrink-0">
+                        <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                          <Columns className="h-3.5 w-3.5 text-primary" />
                           Columns ({currentTable.columns.length})
                         </span>
-                        {columnsExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        {columnsExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="flex-1 min-h-0 overflow-hidden">
-                        <ScrollArea className="h-full max-h-[320px]">
+                        <ScrollArea className="h-full max-h-[280px]">
                           <div className="p-3 space-y-3">
                             {currentTable.columns.length === 0 ? (
                               <div className="text-center py-8">

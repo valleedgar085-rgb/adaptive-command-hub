@@ -456,16 +456,17 @@ Type 'help' for available commands.`;
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="border-t border-border/50 p-2 flex items-center gap-2 bg-background/50">
+          <div className="border-t border-border/50 p-3 flex items-center gap-2 bg-background/80 flex-shrink-0">
             <span className="text-emerald-500 font-mono text-sm pl-2">❯</span>
             <Input
               ref={inputRef}
               value={currentCommand}
               onChange={(e) => setCurrentCommand(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Enter command..."
+              placeholder="Type 'help' for commands..."
               disabled={isExecuting}
-              className="flex-1 h-8 bg-transparent border-none focus-visible:ring-0 font-mono text-sm placeholder:text-muted-foreground/50"
+              autoFocus
+              className="flex-1 h-9 bg-muted/50 border border-border/50 focus:border-emerald-500/50 focus-visible:ring-1 focus-visible:ring-emerald-500/30 font-mono text-sm placeholder:text-muted-foreground/50 rounded-lg"
             />
             <Button
               size="sm"
